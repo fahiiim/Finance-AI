@@ -37,7 +37,7 @@ Verified with a live call: `401 Incorrect API key provided`. Put a working key i
 > burned.
 
 `BACKEND_API_BASE_URL` is **correct** — no change needed. It resolves properly to
-`https://shakti.parastechnologies.in/MyFi/api/internal/transactions`.
+`https://<your-backend-host>/MyFi/api/internal/transactions`.
 
 ---
 
@@ -150,7 +150,7 @@ Fixed, with the clock pinned in the test so it cannot pass by luck of the calend
 
 ```bash
 python scripts/verify_backend_contract.py \
-    --base-url https://shakti.parastechnologies.in/MyFi/api \
+    --base-url https://<your-backend-host>/MyFi/api \
     --token "$BACKEND_API_SERVICE_TOKEN" \
     --user-id 267
 ```

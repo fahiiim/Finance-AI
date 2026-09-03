@@ -220,9 +220,9 @@ labelled as widened, just less precise. Merchant matching has no such dependency
 
 ### CLEAN UP — Test data is sitting in production
 Users **231, 240, 267 and 293** have manual transactions named `test`, including a
-±$500,000 pair on 2026-08-09, plus roughly nine test user accounts
-(`test`/`meiko@joinmyfi.com`, `testing`/`myfitest123@gmail.com`,
-`testiuser@yopmail.com`, …).
+±$500,000 pair on 2026-08-09, plus roughly nine test user accounts whose names and
+emails are obviously non-production (redacted here -- query
+`application_users WHERE Name LIKE '%test%' OR email LIKE '%test%'` to list them).
 
 These were **not** filtered in code. All ten live `test` rows are manual entries
 (`is_plaid=0`), and manual entries are legitimate — this codebase already had a bug

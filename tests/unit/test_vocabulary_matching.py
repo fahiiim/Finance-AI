@@ -163,10 +163,10 @@ def test_an_ach_descriptor_does_not_leak_a_third_partys_name():
     another as the name of their subscription.
     """
     cleaned = clean_merchant_name(
-        "NEW AMERICAN FND DES:HOME LOAN ID:XXXXX88528 INDN:TRACI ANNE CROWELL CO ID:35058 PPD"
+        "NEW AMERICAN FND DES:HOME LOAN ID:XXXXX00000 INDN:JANE ALEX DOE CO ID:00000 PPD"
     )
-    assert "TRACI" not in cleaned.upper()
-    assert "CROWELL" not in cleaned.upper()
+    assert "JANE" not in cleaned.upper()
+    assert "DOE" not in cleaned.upper()
     assert cleaned.lower().startswith("new american")
 
 
