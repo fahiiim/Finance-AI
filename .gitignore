@@ -1,0 +1,35 @@
+# Real secrets never get committed; the *.example templates always do -- they
+# are the only documentation of which variables exist, and a template that is
+# ignored is a template nobody on the team ever sees.
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Database dumps and snapshots — these contain real customer financial data
+# and must never be committed. 169 MB of live PII is one `git add .` away.
+#
+# *.sql alone was NOT enough: data/demo.sqlite3 is the same 122,326 real
+# transactions in SQLite form -- names, emails and balances for ~300 people --
+# and no rule here matched it. Everything derived from the dump is listed
+# explicitly rather than trusting one extension to catch it all.
+*.sql
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+.DS_Store
