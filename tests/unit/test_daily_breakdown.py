@@ -21,10 +21,10 @@ import pytest
 
 from app.schemas.planner import ExecutionPlan, Intent
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from app.tools.expenses import MAX_DAILY_BREAKDOWN_DAYS, get_expenses_tool
 from app.utils.dates import ResolvedDateRange
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 def _plan(start: date, end: date, category: str | None = None) -> ExecutionPlan:
@@ -39,7 +39,7 @@ def _plan(start: date, end: date, category: str | None = None) -> ExecutionPlan:
 
 
 async def _run(plan: ExecutionPlan) -> dict:
-    return await get_expenses_tool(FinancialService(MockBackendClient()), make_user_context(user_id="42"), plan)
+    return await get_expenses_tool(FinancialService(InMemoryBackendClient()), make_user_context(user_id="42"), plan)
 
 
 @pytest.mark.asyncio

@@ -51,13 +51,14 @@ No auth. Readiness probe — reports what the service is actually wired to:
   "status": "ready",
   "checks": {
     "openai_api_key_configured": false,
-    "backend_integration_mode": "mock"
+    "backend_integration_mode": "backend_api",
+    "backend_reachable": true
   }
 }
 ```
 
-Useful as a first check: if `backend_integration_mode` says `mock`, you are
-looking at fake data, not your database.
+Useful as a first check: `backend_integration_mode` must say `backend_api` and
+`backend_reachable` must be `true`, or the service cannot see your database.
 
 ---
 

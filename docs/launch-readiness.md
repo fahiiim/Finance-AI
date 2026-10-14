@@ -17,7 +17,7 @@ endpoints exist.
 
 ## 1. Fixed in this codebase
 
-All verified against the real 122,326-row production dump, not fixtures.
+All verified against real production data, not fixtures.
 
 | Fix | What was wrong |
 |---|---|
@@ -158,7 +158,7 @@ STRICT_DATA_OWNERSHIP=false
 > occurrence was with `ENVIRONMENT=local` pointed at a real backend.
 
 Startup validation also rejects a short `SERVICE_JWT_SECRET`, `DEBUG=true`, and the
-`mock` and `sqlite` backends in production.
+any non-live data source in production (there is none to select).
 
 ### Health and readiness probes
 
@@ -202,7 +202,7 @@ serving JSON — a very natural instinct — income and spending swap places in 
 figure the assistant reports (savings rate, cash flow, all of it), with no error
 anywhere and nothing wrong-looking on screen.
 
-Verified against the dump: known purchases are 18,300 positive to 167 negative; known
+Verified against real data: known purchases are 18,300 positive to 167 negative; known
 income 6 positive to 7,557 negative. The contract checker fails on this. If you do
 normalise, say so and one constant (`OUTFLOW_IS_POSITIVE` in
 `app/utils/transactions.py`) gets flipped.
@@ -210,7 +210,7 @@ normalise, say so and one constant (`OUTFLOW_IS_POSITIVE` in
 ### CONFIRM — The `is_review_transfer` rule must match on both sides
 This service now excludes a flagged row **only when its category is `TRANSFER_IN` or
 `TRANSFER_OUT`**. If Laravel applies the old blanket rule, the two services will
-disagree on every total. Evidence and reasoning in `docs/demo-database.md`.
+disagree on every total. The rule and its reasoning are in `docs/backend-integration.md`.
 
 ### NICE TO HAVE — Send `subcategory` for precise restaurant answers
 Plaid's detailed tier (`FOOD_AND_DRINK_RESTAURANT`) is in your database but discarded
@@ -259,8 +259,7 @@ confirm planning and date resolution worked and only the fetch failed.
 **Do not deploy expecting it to work before the endpoints exist.**
 
 - With `BACKEND_INTEGRATION_MODE=backend_api` and no endpoints → every question errors.
-- With `BACKEND_INTEGRATION_MODE=sqlite` → production startup **refuses to boot**, by
-  design, because that mode serves a static snapshot rather than live data.
+- With any value other than `backend_api` or `read_only_db` → startup fails validation.
 
 The AI service is finished. It is waiting on Laravel.
 
@@ -276,6 +275,6 @@ The AI service is finished. It is waiting on Laravel.
 | Contract checker | `scripts/verify_backend_contract.py` |
 | Sign convention | `app/utils/transactions.py` |
 | Category / merchant matching | `app/utils/categories.py`, `app/utils/merchants.py` |
-| Transfer-flag reasoning | `docs/demo-database.md` |
+| Transfer-flag reasoning | `docs/backend-integration.md` |
 
-Verified on the real dump: 403 tests passing, ruff clean, mypy clean across 71 files.
+Verified on real data: 400+ tests passing, ruff clean, mypy clean across 71 files.

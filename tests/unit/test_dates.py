@@ -172,6 +172,34 @@ def test_non_month_ranges_fall_back_to_equal_length():
     assert r.end < original.start
 
 
+def test_last_weekend_is_the_saturday_before_this_weekend():
+    this_r = resolve_date_phrase("this weekend", "UTC")
+    last_r = resolve_date_phrase("last weekend", "UTC")
+    assert last_r.start.weekday() == 5  # Saturday
+    assert last_r.end.weekday() == 6  # Sunday
+    assert last_r.end == last_r.start + timedelta(days=1)
+    assert last_r.start == this_r.start - timedelta(days=7)
+
+
+@pytest.mark.parametrize("phrase", ["past weekend", "previous weekend", "prior weekend"])
+def test_last_weekend_synonyms_resolve(phrase):
+    assert resolve_date_phrase(phrase, "UTC") == resolve_date_phrase("last weekend", "UTC")
+
+
+def test_the_previous_weekend_is_not_thursday_and_friday():
+    """
+    A naive "shift back by this range's own length" lands on Thu/Fri for a
+    Sat-Sun range -- confirmed live against the client's QA complaint that a
+    weekend-over-weekend comparison used the wrong days.
+    """
+    this_weekend = resolve_date_phrase("this weekend", "UTC")
+    previous = previous_calendar_period(this_weekend)
+    assert previous.start.weekday() == 5  # Saturday, not Thursday
+    assert previous.end.weekday() == 6  # Sunday, not Friday
+    assert previous.start == this_weekend.start - timedelta(days=7)
+    assert previous.end == this_weekend.end - timedelta(days=7)
+
+
 def test_plural_period_phrases_resolve():
     """A comparison naturally pluralises: "the current calendar months"."""
     for phrase in ("current calendar months", "current months", "previous months"):
@@ -338,10 +366,17 @@ def test_a_bare_day_of_month_steps_back_when_it_has_not_happened():
     """On the 23rd, "the 31st" is last month's 31st, not one eight days away."""
     tz = "America/New_York"
     today = current_date_in(tz)
-    got = resolve_date_phrase("the 31st", tz)
+    if today.day >= 28:
+        pytest.skip("needs a day-of-month that has not happened yet this month")
+    # The day AFTER today: it has not happened this month, and every month has
+    # it, so it must resolve to last month's. ("the 31st" failed in any month
+    # preceded by a 30-day month -- last month had no 31st to step back to.)
+    day = today.day + 1
+    suffix = "th" if 10 <= day % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    got = resolve_date_phrase(f"the {day}{suffix}", tz)
     assert got is not None
-    assert got.start.day == 31
-    assert got.start <= today
+    assert got.start.day == day
+    assert got.start < today
 
 
 def test_an_impossible_date_resolves_to_nothing_rather_than_raising():

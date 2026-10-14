@@ -18,6 +18,7 @@ from app.services.financial_service import FinancialService
 from app.tools.calculations import calculate_total_spending
 from app.tools.filters import apply_filters
 from app.utils.merchants import clean_merchant_name, top_merchants
+from app.utils.transactions import expenses
 
 MAX_SAMPLE_TRANSACTIONS = 15
 
@@ -48,19 +49,21 @@ async def get_transactions_tool(
     start: date | None = plan.date_range.start if plan.date_range else None
     end: date | None = plan.date_range.end if plan.date_range else None
 
-    # Dates and amounts are filtered by the backend, which can do it in SQL.
-    # Category and merchant are NOT: both need the user's words reconciled
-    # with the data's labels, and a backend doing exact string comparison
-    # answered "how much at Wendy's?" with an empty list because the
-    # statement said "WENDY S". Fetching the period and resolving here also
-    # means the merchant list, the totals and the sample all agree.
-    transactions = await financial_service.get_transactions(
-        context,
-        start=start,
-        end=end,
-        min_amount=plan.min_amount,
-        max_amount=plan.max_amount,
-    )
+    # Expenses only, not get_transactions(): every sibling tool
+    # (SPENDING_ANALYSIS, CATEGORY_ANALYSIS, MERCHANT_ANALYSIS) already
+    # filters to outflows, and an unqualified "show me transactions over
+    # $200" / "largest purchase" / "purchases yesterday" means purchases,
+    # not deposits -- confirmed live, a manually-entered +$500,000 INCOME
+    # row surfaced in a "transactions over $200" answer before this filter.
+    # A user who wants inflows asks an income question (INCOME_QUERY).
+    transactions = expenses(await financial_service.get_transactions(context, start=start, end=end))
+
+    # min_amount/max_amount applied here instead of at the backend: get_expenses
+    # doesn't take them, since it's also used by callers with no amount filter.
+    if plan.min_amount is not None:
+        transactions = [t for t in transactions if abs(float(t.amount)) >= plan.min_amount]
+    if plan.max_amount is not None:
+        transactions = [t for t in transactions if abs(float(t.amount)) <= plan.max_amount]
 
     if plan.weekday_filter is not None:
         transactions = [t for t in transactions if t.date.weekday() == plan.weekday_filter]

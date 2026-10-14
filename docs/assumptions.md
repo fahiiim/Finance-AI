@@ -9,7 +9,7 @@ is explicit rather than silently guessed.
 ## Repository / requirements audit (Phase 1 result)
 
 - `/mnt/user-data/uploads` was empty at build time — no existing repo,
-  `CLAUDE.md`, documentation, or SQL dump to inspect.
+  `CLAUDE.md`, documentation, or database export to inspect.
 - Nothing in this build overwrites or conflicts with an existing codebase,
   since none was provided. Before deploying against a real system, the
   items below need to be reconciled against the actual backend.
@@ -29,9 +29,9 @@ is explicit rather than silently guessed.
   guessing column names and types, which the spec explicitly says not to
   do. `get_backend_client()` raises a clear `RuntimeError` pointing here if
   this mode is selected.
-- **`mock` mode** (`app/services/mock_backend_client.py`) generates
-  deterministic, per-user-seeded fake data. This is what the test suite and
-  local dev run against by default (`BACKEND_INTEGRATION_MODE=mock`).
+- **Tests** use an in-memory test double (`tests/support/in_memory_backend.py`)
+  that generates deterministic, per-user-seeded data. It is not part of the
+  application and cannot be selected at runtime.
 
 ## Authentication
 

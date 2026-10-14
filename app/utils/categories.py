@@ -19,8 +19,8 @@ HOW IT WORKS
     resolve_category() scores the user's phrase against the labels that are
     ACTUALLY PRESENT in the data being filtered, and returns the best one
     above a threshold. Nothing is hard-coded to one backend's vocabulary:
-    the same call resolves "dining" to "Dining" against the mock client and
-    to "Food And Drink" against the SQLite/Plaid one.
+    the same call resolves "dining" to "Dining" against a test client and
+    to "Food And Drink" against the live Plaid-backed one.
 
 SUBCATEGORIES
     Plaid's detailed level distinguishes FOOD_AND_DRINK_RESTAURANT from

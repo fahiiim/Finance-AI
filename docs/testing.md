@@ -7,8 +7,8 @@ real output, not illustrations.
 
 `.env` is already configured for local testing:
 
-- `BACKEND_INTEGRATION_MODE=mock` — deterministic fake financial data seeded
-  per `user_id`. No real backend or database needed.
+- Unit tests run against an in-memory test double
+  (`tests/support/in_memory_backend.py`), seeded per `user_id`. No network needed.
 - `SERVICE_JWT_SECRET` — a locally generated dev secret. **Never used in
   production.**
 - `OPENAI_API_KEY` — set, and verified working against `gpt-4.1`.
@@ -197,7 +197,7 @@ User 99 asks for the identical session id:
 `(user_id, session_id)`, so knowing a session id is never enough.
 
 Once `OPENAI_API_KEY` is set, the stronger check is to ask both users the
-same question and confirm the answers differ — mock data is seeded per
+same question and confirm the answers differ — the data is separate per
 `user_id`, so user 42 and user 99 have entirely separate finances.
 
 ---
@@ -236,4 +236,4 @@ The security-critical suites:
 | `tests/unit/test_prompt_versions.py` | a new prompt version keeps every guarantee of the one it replaces |
 | `tests/unit/test_period_defaults.py` | an ordinary question with no period stated is answered, not rejected |
 | `tests/unit/test_daily_breakdown.py` | per-day figures cover every day, zeros included, and long windows are capped |
-| `tests/unit/test_sqlite_backend.py` | the real-data client scopes every query and drops no rows |
+| `tests/unit/test_live_api_client.py` | the live-API client maps every endpoint, pages through all rows, and applies the sign, transfer and ownership rules |

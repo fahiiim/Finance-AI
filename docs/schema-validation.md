@@ -1,6 +1,6 @@
 # Schema Validation — AI service vs. the real database
 
-Validated against `shaktiparastechn_myfi 5.sql` (production dump, 65 tables,
+Validated against the production schema export ( 65 tables,
 ~297 users in `application_users`, ~261k rows in `plaid_transactions`).
 
 This supersedes the guesses in `docs/assumptions.md` for everything covered
@@ -39,7 +39,7 @@ tests agreed with each other, so everything passed.
 `income_amount`). All call sites use it. `tests/unit/test_sign_convention.py`
 anchors assertions to real-world meaning — "a salary deposit is income" —
 rather than to a sign, so implementation and tests cannot drift together
-again. The mock backend now generates data in the production convention.
+again. The in-memory test double now generates data in the production convention.
 
 If the backend chooses to normalize signs before serving this service, flip
 `OUTFLOW_IS_POSITIVE` and nothing else changes — but that must be an

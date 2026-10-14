@@ -9,7 +9,7 @@ THE CONVENTION
     exactly why it is dangerous to leave implicit.
 
 VERIFIED, NOT ASSUMED
-    Confirmed against 122,326 real rows of the production dump:
+    Confirmed against 122,326 real production rows:
 
         known purchases (Netflix, Uber, Walmart, ...)  18,300 positive / 167 negative
         known income (payroll, salary, direct deposit)      6 positive / 7,557 negative

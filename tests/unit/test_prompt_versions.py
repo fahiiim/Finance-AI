@@ -83,6 +83,25 @@ def test_the_planner_v2_keeps_every_v1_rule():
     assert "ACTION REQUESTS ARE OUT OF SCOPE" in EXECUTION_PLAN_PROMPT_V2
 
 
+def test_v2_does_not_bound_aggregate_questions_by_a_prior_period():
+    """
+    Confirmed live: "what's my largest monthly bill?" asked right after
+    "what bills are due in the next seven days?" inherited that 7-day
+    window via CHANGING THE SUBJECT KEEPS THE PERIOD and reported no bills
+    at all, when the real (unbounded) answer was $5,593.50.
+    """
+    assert "AGGREGATE QUESTION IS NOT BOUNDED BY A PRIOR PERIOD" in EXECUTION_PLAN_PROMPT_V2
+
+
+def test_v2_routes_trend_questions_to_their_own_intent_not_comparison():
+    """
+    Confirmed live: "is my savings rate improving?" was misrouted to
+    PERIOD_COMPARISON (no history of its own) instead of SAVINGS_ANALYSIS
+    (which already carries 12 months of history).
+    """
+    assert "TREND QUESTION ABOUT ONE SUBJECT" in EXECUTION_PLAN_PROMPT_V2
+
+
 def test_a_clarifying_question_is_never_asked_about_an_action():
     """"Which account should the $200 come from?" implies the transfer will happen."""
     assert "cannot" in CLARIFICATION_PROMPT_V2.lower()

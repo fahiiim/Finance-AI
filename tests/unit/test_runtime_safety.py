@@ -1,7 +1,7 @@
 """
 Tests for startup configuration guardrails and client lifecycle.
 
-These cover failure modes that only bite in production — a mock data source
+These cover failure modes that only bite in production — a test data source
 serving real users, or a connection pool leaked per request.
 """
 
@@ -31,11 +31,6 @@ def _settings(**overrides) -> Settings:
     }
     base.update(overrides)
     return Settings(**base)
-
-
-def test_production_rejects_mock_backend():
-    with pytest.raises(RuntimeError, match="fabricated financial data"):
-        _settings(backend_integration_mode=BackendIntegrationMode.MOCK).validate_runtime_safety()
 
 
 def test_production_rejects_empty_jwt_secret():
@@ -104,10 +99,16 @@ def test_those_checks_do_not_fire_for_other_integration_modes():
     """A token is meaningless without an HTTP backend; do not demand one."""
     _settings(
         environment=Environment.LOCAL,
-        backend_integration_mode=BackendIntegrationMode.SQLITE,
+        backend_integration_mode=BackendIntegrationMode.READ_ONLY_DB,
         backend_api_service_token="",
         backend_api_base_url=None,
     ).validate_runtime_safety()
+
+
+def test_an_unknown_integration_mode_is_rejected_rather_than_silently_ignored():
+    """A stale or mistyped .env value must fail loudly at startup, not fall back."""
+    with pytest.raises(ValueError):
+        _settings(backend_integration_mode="not_a_mode")
 
 
 def test_weak_settings_warn_without_blocking_startup(caplog):
@@ -133,11 +134,13 @@ def test_valid_production_config_passes():
     _settings().validate_runtime_safety()  # must not raise
 
 
-def test_local_mock_config_is_allowed():
-    """Local dev must stay frictionless — the guardrails are production-only."""
+def test_local_config_is_allowed_without_production_secrets():
+    """Local dev must stay frictionless — the production guardrails do not apply."""
     Settings(
         environment=Environment.LOCAL,
-        backend_integration_mode=BackendIntegrationMode.MOCK,
+        backend_integration_mode=BackendIntegrationMode.BACKEND_API,
+        backend_api_base_url="https://host/MyFi/api",
+        backend_api_service_token="a-token",
         service_jwt_secret="",
     ).validate_runtime_safety()
 
@@ -159,9 +162,9 @@ def test_backend_client_is_a_single_shared_instance():
 @pytest.mark.asyncio
 async def test_backend_client_exposes_aclose():
     """Shutdown must be able to release the pool regardless of active mode."""
-    from app.services.mock_backend_client import MockBackendClient
+    from tests.support.in_memory_backend import InMemoryBackendClient
 
-    await MockBackendClient().aclose()  # no-op, but must exist on the interface
+    await InMemoryBackendClient().aclose()  # no-op, but must exist on the interface
 
 
 def test_shutdown_releases_client_connection_pools():

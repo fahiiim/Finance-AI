@@ -62,7 +62,7 @@ async def test_token_missing_session_id_rejected():
 @pytest.mark.asyncio
 async def test_a_message_body_cannot_impersonate_another_user():
     """
-    Demonstrates the security invariant directly: even if a malicious body
+    Shows the security invariant directly: even if a malicious body
     contained something like {"user_id": "victim"}, ChatRequest has no such
     field (see test_user_isolation.py), and identity here comes only from
     the token — a forged body value has literally nowhere to plug in.

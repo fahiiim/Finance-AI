@@ -4,7 +4,7 @@ One place where a plan's category and merchant filters meet real data.
 WHY IT IS SHARED
     Filtering used to be a one-line comparison repeated in five modules --
     the expenses tool, the transactions tool, two calculation helpers and the
-    SQLite client. Each was `(t.category or "").lower() == filter.lower()`,
+    backend client. Each was `(t.category or "").lower() == filter.lower()`,
     and each was wrong in the same way: the user's words are not the
     database's labels. Fixing that in one module and not the others would
     have produced something worse than the bug, which is two totals for the

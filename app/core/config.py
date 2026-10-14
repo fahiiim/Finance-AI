@@ -27,11 +27,6 @@ class BackendIntegrationMode(str, Enum):
 
     BACKEND_API = "backend_api"
     READ_ONLY_DB = "read_only_db"
-    MOCK = "mock"  # in-memory data, used for local dev / tests only
-    # A local read-only SQLite copy of the real database, built by
-    # scripts/build_demo_db.py. For demos and for checking the schema mapping
-    # against real rows -- not a production path.
-    SQLITE = "sqlite"
 
 
 class Environment(str, Enum):
@@ -63,9 +58,7 @@ class Settings(BaseSettings):
     openai_base_url: str | None = None
 
     # ---- Backend integration ----
-    backend_integration_mode: BackendIntegrationMode = BackendIntegrationMode.MOCK
-    # Path to the SQLite snapshot used when backend_integration_mode=sqlite.
-    demo_db_path: str = "data/demo.sqlite3"
+    backend_integration_mode: BackendIntegrationMode = BackendIntegrationMode.BACKEND_API
     backend_api_base_url: str | None = None
     # 10s was too tight for the real payloads. A period comparison fetches two
     # transaction windows and a merchant question can reach back six months --
@@ -163,8 +156,8 @@ class Settings(BaseSettings):
         Fail fast on configurations that must never reach production.
 
         Called once at startup (see app/main.py lifespan). Deliberately raises
-        rather than logging a warning: a misconfigured auth secret or a mock
-        data source in production is not something to discover from a log.
+        rather than logging a warning: a misconfigured auth secret
+        in production is not something to discover from a log.
         """
         if self.service_jwt_algorithm.lower() == "none":
             raise RuntimeError("SERVICE_JWT_ALGORITHM='none' disables signature verification.")
@@ -198,12 +191,6 @@ class Settings(BaseSettings):
             return
 
         problems: list[str] = []
-        if self.backend_integration_mode is BackendIntegrationMode.MOCK:
-            problems.append("BACKEND_INTEGRATION_MODE=mock serves fabricated financial data")
-        if self.backend_integration_mode is BackendIntegrationMode.SQLITE:
-            problems.append(
-                "BACKEND_INTEGRATION_MODE=sqlite serves a static local snapshot, not live data"
-            )
         if not self.service_jwt_secret:
             problems.append("SERVICE_JWT_SECRET is empty")
         elif self.service_jwt_algorithm.upper().startswith("HS") and len(self.service_jwt_secret) < 32:

@@ -25,8 +25,8 @@ from app.schemas.planner import (
     RawExecutionPlan,
 )
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 class _Planner:
@@ -98,7 +98,7 @@ async def test_no_period_scoped_intent_can_reach_the_tools_without_a_range():
     a range live elsewhere. If someone adds a range requirement to a handler
     and forgets the list, this fails rather than the user seeing a 422.
     """
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     ctx = make_user_context(user_id="42")
     missed = []
     for intent in Intent:

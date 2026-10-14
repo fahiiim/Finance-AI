@@ -18,14 +18,14 @@ import pytest
 from app.orchestrator.intent_router import route_and_execute
 from app.schemas.planner import ExecutionPlan, Intent
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from app.tools.expenses import get_expenses_tool
 from app.utils.dates import ResolvedDateRange
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 def _service() -> FinancialService:
-    return FinancialService(MockBackendClient())
+    return FinancialService(InMemoryBackendClient())
 
 
 def _range() -> ResolvedDateRange:
@@ -122,14 +122,14 @@ async def test_a_category_comparison_compares_only_that_category():
 
 
 @pytest.mark.asyncio
-async def test_mock_merchants_and_categories_agree():
+async def test_test_double_merchants_and_categories_agree():
     """
-    A demo that shows "Netflix (Groceries)" undermines every number beside it,
+    An answer that shows "Netflix (Groceries)" undermines every number beside it,
     and makes category totals impossible to check against the transaction list.
     """
-    from app.services.mock_backend_client import _MERCHANT_CATEGORIES
+    from tests.support.in_memory_backend import _MERCHANT_CATEGORIES
 
-    client = MockBackendClient()
+    client = InMemoryBackendClient()
     txns = await client._all_transactions(make_user_context(user_id="99"))
     assert txns
     for t in txns:

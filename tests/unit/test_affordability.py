@@ -16,8 +16,8 @@ import pytest
 from app.orchestrator.intent_router import route_and_execute
 from app.schemas.planner import ExecutionPlan, Intent, RawExecutionPlan, ResolvedDateRange
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 def _plan(**kw) -> ExecutionPlan:
@@ -42,7 +42,7 @@ def test_amount_in_question_survives_raw_to_resolved():
 
 @pytest.mark.asyncio
 async def test_affordability_uses_amount_in_question():
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     result, tools = await route_and_execute(fs, make_user_context(user_id="42"), _plan(amount_in_question=500.0))
     assert Decimal(result["amount_in_question"]) == Decimal("500")
     assert "get_accounts" in tools
@@ -51,7 +51,7 @@ async def test_affordability_uses_amount_in_question():
 @pytest.mark.asyncio
 async def test_max_amount_still_accepted_as_a_fallback():
     """Older plans put the figure in max_amount; don't 422 a question we can answer."""
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     result, _ = await route_and_execute(fs, make_user_context(user_id="42"), _plan(max_amount=250.0))
     assert Decimal(result["amount_in_question"]) == Decimal("250")
 
@@ -65,7 +65,7 @@ async def test_no_amount_still_reports_what_the_user_has():
     A missing price means no verdict, not no answer: report the uncommitted
     balance and ask what it costs.
     """
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     result, tools = await route_and_execute(fs, make_user_context(user_id="42"), _plan())
 
     assert result["amount_in_question"] is None
@@ -82,7 +82,7 @@ async def test_min_max_amount_remain_transaction_filters():
     The overload is gone: min/max_amount must still narrow a transaction list
     and must NOT be read as an affordability figure.
     """
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     ctx = make_user_context(user_id="42")
     plan = ExecutionPlan(
         intent=Intent.TRANSACTION_QUERY,
@@ -107,7 +107,7 @@ async def test_min_max_amount_remain_transaction_filters():
 # --------------------------------------------------------------------------
 
 
-class _Stub(MockBackendClient):
+class _Stub(InMemoryBackendClient):
     """Fixed balance and no bills, so a verdict threshold is exactly testable."""
 
     def __init__(self, balance: str) -> None:
@@ -196,7 +196,7 @@ async def test_an_unpriceable_item_asks_rather_than_guessing():
 @pytest.mark.asyncio
 async def test_bills_are_committed_before_any_verdict():
     """Money already owed is not money available to spend on a television."""
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     result, _ = await route_and_execute(
         fs, make_user_context(user_id="42"), _plan(amount_in_question=100.0)
     )
@@ -219,7 +219,7 @@ def test_the_estimate_fields_survive_raw_to_resolved():
     assert plan.amount_in_question is None, "an estimate must never masquerade as a stated sum"
 
 
-class _NoAccounts(MockBackendClient):
+class _NoAccounts(InMemoryBackendClient):
     async def get_accounts(self, context):
         return []
 
@@ -260,7 +260,7 @@ async def test_every_user_can_be_asked_the_same_question():
     The capability is per-request, not per-user: nothing about affordability
     depends on which account is being asked about.
     """
-    fs = FinancialService(MockBackendClient())
+    fs = FinancialService(InMemoryBackendClient())
     for user_id in ("1", "42", "99", "7", "264", "12345"):
         result, _ = await route_and_execute(
             fs, make_user_context(user_id=user_id), _plan(estimated_price=1200.0)

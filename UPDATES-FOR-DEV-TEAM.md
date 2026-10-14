@@ -1,191 +1,94 @@
-# Updates for the dev team — 3 Sep 2026
+# Handover to the backend team — 14 Oct 2026
 
-Read this first, then `docs/launch-readiness.md` for the full picture.
+The AI service now reads **live data** through your `/api/internal/*` endpoints.
+There is no demo, snapshot or fabricated data source left in the code.
 
----
-
-## 🔴 Two blockers. Nothing works until both are fixed.
-
-### 1. `BACKEND_API_SERVICE_TOKEN` is empty
-
-This is the cause of the error you reported:
-
-> *"Your income figures are temporarily unavailable because the data service did not respond."*
-
-An empty value still builds a working HTTP client and sends `Authorization: Bearer `
-(nothing after "Bearer") on **every** call. Laravel rejects all of them, and the AI
-service correctly refuses to invent numbers rather than showing a made-up figure.
-
-```diff
-- BACKEND_API_SERVICE_TOKEN=
-+ BACKEND_API_SERVICE_TOKEN=<the value Laravel checks the header against>
-```
-
-It must be **the same string on both sides**.
-
-**This is not an AI bug.** The metadata in your own response proves the rest worked:
-`intent: INCOME_QUERY` was correct, `period_phrase: "this month"` resolved to
-`2026-09-01 → 2026-09-02`, and `data_used: false` says no data was read. Planning,
-date resolution and routing were all fine — only the fetch failed.
-
-### 2. The `OPENAI_API_KEY` in `.env` is rejected by OpenAI
-
-Verified with a live call: `401 Incorrect API key provided`. Put a working key in.
-
-> ⚠️ **The key and `SERVICE_JWT_SECRET` were pasted into a chat. Rotate both.**
-> Treat any credential that has been shared in a message, ticket or screenshot as
-> burned.
-
-`BACKEND_API_BASE_URL` is **correct** — no change needed. It resolves properly to
-`https://<your-backend-host>/MyFi/api/internal/transactions`.
+Read this page first. Contract details are in `docs/backend-integration.md`.
 
 ---
 
-## 🟢 How to tell it is fixed — one check
+## 1. What you need to deploy it
 
-```
-GET /ready
-```
+Set these on the AI service host, then restart it.
 
-- **200** → this instance can genuinely answer. Go.
-- **503** → it cannot, and the body names why.
+| Setting | Value | Notes |
+|---|---|---|
+| `ENVIRONMENT` | `production` | turns on the start-up safety checks |
+| `BACKEND_INTEGRATION_MODE` | `backend_api` | the only supported mode |
+| `BACKEND_API_BASE_URL` | `https://<your-host>/MyFi/api` | include the `/MyFi/api` prefix |
+| `BACKEND_API_SERVICE_TOKEN` | your static `/api/internal/*` token | **not** the `/get/token` JWT |
+| `SERVICE_JWT_SECRET` | 32+ characters | **must equal** Laravel's `AI_SERVICE_JWT_SECRET` |
+| `OPENAI_API_KEY` | a working key | |
+| `STRICT_DATA_OWNERSHIP` | `true` | rejects any record that does not say who owns it |
+| `ALLOW_IN_MEMORY_CONVERSATIONS` | `true` | see decision A below |
+| `DEBUG` | `false` | |
 
-```json
-{
-  "status": "not_ready",
-  "problems": ["OpenAI key rejected or unreachable (AuthenticationError)"],
-  "checks": {
-    "openai_api_key_configured": true,
-    "openai_key_valid": false,
-    "backend_credentials_configured": false,
-    "backend_reachable": true
-  }
-}
-```
+The service **refuses to start** in production if any of these is unsafe, and the
+error message says which one.
 
-Note `openai_api_key_configured: true` alongside `openai_key_valid: false` — the
-endpoint separates *configured* from *actually working*, because a revoked key passes
-every "is it set?" test and fails every real request.
+## 2. How to check it works (5 minutes)
 
-Wire your orchestrator's **readiness** probe to `/ready` and its **liveness** probe to
-`/health`. Do not point liveness at `/ready`: one Laravel outage would then restart the
-whole fleet, which fixes nothing.
+1. `GET /ready` → `backend_integration_mode` is `backend_api` and
+   `backend_reachable` is `true`.
+2. Run the contract checker with a real user id:
+   `python scripts/verify_backend_contract.py --user-id <id>`
+   (reads the base URL and token from the environment). Exit code `0` = all good.
+3. Open `/docs`, click **Authorize**, paste a chat JWT, and send
+   `POST /api/v1/chat` with `{"session_id": "t1", "message": "How much did I spend this month?"}`
+   and header `X-Session-Id: t1`.
 
----
+## 3. Your part — what only you can do
 
-## What changed in this update
+**Security (do first)**
+- [ ] **Rotate** the internal service token and the Sanctum token used for
+      `/get/token`. Both were pasted into a chat during integration.
 
-### Startup now refuses to boot on a broken configuration
+**Decisions**
+- [ ] **A. Chat history.** Your API has no endpoints to *write* conversations, so the
+      service keeps history in memory: it is lost on restart and works with **one
+      instance only**. Either accept that, or add `POST/DELETE` conversation
+      endpoints (spec in `docs/handover-backend.md` §8) and set
+      `CONVERSATION_STORAGE=backend_api`.
+- [ ] **B. Per-user check.** Your service token is shared, so your API cannot tell
+      which user is being asked about. The AI service verifies every record's
+      `owner_user_id` itself, but if you can also reject a `user_id` that does not
+      match the chat JWT's `sub`, do — defence in depth.
 
-Previously these were only checked when `ENVIRONMENT=production`, and you were running
-`local` against a real backend — so the guard existed and never ran. **That was my
-mistake.** It now runs in every environment:
+**Data the assistant cannot answer without** (it says "not available" today)
+- [ ] Interest rate and minimum payment on every liability (currently `null`) —
+      without these, "pay off debt faster" questions cannot be modelled.
+- [ ] A **date range** on `/api/internal/bills` (`start`/`end` are ignored; only the
+      current month is returned). The service works around it with one request per
+      day, which is why some cash questions take 15–30 s.
+- [ ] Investment value **history** (daily/monthly) if you want performance
+      questions answered, and index data if you want market comparisons.
+- [ ] Which field marks a transaction as **"excluded"** in the app. Testers refer to
+      it, and no such field is in the API today.
+- [ ] Retirement-designated account balances, if "how much have I saved for
+      retirement?" should have a number.
 
-```
-BACKEND_INTEGRATION_MODE=backend_api is misconfigured:
-BACKEND_API_SERVICE_TOKEN is empty (every backend call would be sent
-unauthenticated, and the backend will reject all of them)
-```
+**Test data**
+- [ ] Remove the QA entries in user 267's account (for example a $100,000
+      "spending efficiency" expense and a $96,358 "Addd" income). The app counts
+      them, so they distort "largest purchase", "typical spending" and savings answers.
 
-A misconfiguration now fails the deploy instead of reaching users.
+## 4. Behaviours you should know
 
-### Logs finally show *why* a call failed
+- **Spending excludes transfers.** A row is left out only when it is flagged
+  `is_review_transfer` **and** categorised `TRANSFER_IN`/`TRANSFER_OUT`. Your
+  `financial-summary` counts them as expenses, so the assistant's "spent" figure
+  will be lower than that endpoint's — by design, so every answer uses one definition.
+- **Hand-typed rows** follow the category (`direction`), not the amount's sign;
+  imported rows keep Plaid's sign.
+- **Net worth and savings progress** come straight from your endpoints, so they
+  agree with the app.
+- **Isolation.** Every request carries only the authenticated user's id, and every
+  returned record is re-checked against it.
 
-With `JSON_LOGS=false` the formatter printed only the message, so you saw
-`backend_request_failed` with no path and no status code — the two fields that tell
-"endpoint missing" from "token wrong". Now, in both plain and JSON format:
+## 5. Quality status
 
-```
-2026-09-03 07:29 ERROR app.repositories.base: backend_request_failed | path=/internal/transactions status=401
-```
-
-| Log line | Cause |
-|---|---|
-| `backend_request_error` | Cannot connect — wrong URL, DNS, port, firewall |
-| `backend_request_failed` + `status=404` | Endpoint not implemented |
-| `backend_request_failed` + `status=401`/`403` | Token wrong or empty ← **your case** |
-| `backend_request_timeout` | Laravel too slow — raise `BACKEND_API_TIMEOUT_SECONDS` |
-
-Secrets stay redacted in both formats.
-
-### `/ready` became a real probe
-
-It used to return `200 "ready"` while every question failed. It now checks that the
-OpenAI key is *accepted* (a free `models.list()` call) and that the backend *responds*,
-both cached ~15s so a fleet of probes costs nothing.
-
-### A date bug that would have started on 1 September
-
-`"1 - 15 August"` resolved its start against **today's** month, producing start = 1 Sep,
-end = 15 Aug — an end before its start, discarded as unresolvable. Users typing an
-explicit date range were asked to clarify a range they had stated exactly.
-
-It worked correctly all through August and broke the moment the month rolled over.
-Fixed, with the clock pinned in the test so it cannot pass by luck of the calendar again.
-
-### Docker
-
-- `HEALTHCHECK` added, `--proxy-headers` for running behind a load balancer.
-- `scripts/` now ships in the image, so you can run the contract checker from inside it
-  against the same network the service sees.
-- **`--workers 1`, deliberately.** Conversation history is in process memory until
-  `CONVERSATION_STORAGE=backend_api`. A second worker is a second memory, so a user's
-  follow-up turn can hit a worker that never heard of them — the assistant re-asks a
-  question it was already answered. Nothing errors. Raise it only after conversations
-  are persisted.
-
-### Other
-
-- `.env.production.example` — every setting with its reasoning, no secrets.
-- `.gitignore` had `.env.*`, which was silently excluding `.env.example` itself. Fixed.
-- Earlier in this pass: restaurant/category matching, merchant name matching, the
-  `is_review_transfer` correction, missing-vs-zero, backend timeouts no longer
-  returning HTTP 500. See `docs/launch-readiness.md` §1.
-
-**403 tests passing · ruff clean · mypy clean across 71 files.**
-
----
-
-## Verify your endpoints before users do
-
-```bash
-python scripts/verify_backend_contract.py \
-    --base-url https://<your-backend-host>/MyFi/api \
-    --token "$BACKEND_API_SERVICE_TOKEN" \
-    --user-id 267
-```
-
-Exits `0` when correct, `1` otherwise, so it can gate a pipeline. Run it per endpoint
-as you build. It catches the four things that otherwise fail **silently in production**:
-
-| Check | Why it matters |
-|---|---|
-| **Sign convention** | Your data uses Plaid's rule — **positive = money out**. If Laravel normalises that when serving JSON, income and spending swap places in every figure, with no error anywhere. |
-| `owner_user_id` | Without it the cross-user containment check cannot verify anything. |
-| `subcategory` | Without it, "how much on restaurants?" widens to all food & drink. |
-| Inclusive dates | `start=end=2026-08-20` must return that day, or every single-date question answers "nothing". |
-
----
-
-## Minimum to go live
-
-Only three endpoints are required. The other eight may 404 at first — those features
-report as *unavailable* rather than as zero.
-
-- `GET /internal/transactions` — params `user_id`, `start`, `end`, `merchant`
-- `GET /internal/accounts` — param `user_id`
-- `GET /internal/financial-summary` — params `user_id`, `start`, `end`
-
-Full request/response shapes: `docs/handover-backend.md` §5.
-
-**The AI never touches the database.** It calls back to Laravel per question:
-
-```
-App → Laravel /api/chat (your auth)
-        → AI /api/v1/chat (service JWT + X-Session-Id)
-            → Laravel /internal/transactions?user_id=267&start=…&end=…
-            ← answer
-```
-
-The mobile app must not call the AI service directly — it would need the shared secret.
-Laravel proxies it; the PHP is in `docs/handover-backend.md` §9.
+- 469 automated tests passing; type-check and lint clean.
+- All 85 questions from the QA workbook were answered from live data; the ones that
+  cannot be answered fully are the data gaps listed above.
+- Verified against one real user only. Please run the contract checker for two or
+  three other users (including one with no investments or bills) before go-live.

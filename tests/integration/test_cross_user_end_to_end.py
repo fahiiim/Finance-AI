@@ -23,8 +23,8 @@ from app.schemas.planner import Intent, RawExecutionPlan
 from app.services.backend_client import BackendClient
 from app.services.conversation_service import ConversationService, InMemoryConversationStore
 from app.services.memory_service import MemoryService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import FakeLLMProvider, make_service_token
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 def _plan() -> RawExecutionPlan:
@@ -76,7 +76,7 @@ def test_two_users_never_see_each_others_figures():
     the same process, and neither prompt contains the other's data.
     """
     llm = _EchoLLM()
-    client = _client_with(llm, MockBackendClient())
+    client = _client_with(llm, InMemoryBackendClient())
 
     for user in ("e2e-user-A", "e2e-user-B"):
         token = make_service_token(user, f"session-{user}")
@@ -88,12 +88,12 @@ def test_two_users_never_see_each_others_figures():
         assert resp.status_code == 200, resp.text
 
     prompt_a, prompt_b = llm.seen_prompts
-    # Mock data is seeded per user_id, so ids are the tell-tale.
+    # Test data is seeded per user_id, so ids are the tell-tale.
     assert "e2e-user-B" not in prompt_a
     assert "e2e-user-A" not in prompt_b
 
 
-class _LeakyBackend(MockBackendClient):
+class _LeakyBackend(InMemoryBackendClient):
     """Correct for everything except transactions, which leak another user."""
 
     async def get_transactions(self, context, **kwargs):

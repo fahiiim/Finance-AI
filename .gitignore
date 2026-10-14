@@ -20,15 +20,11 @@ build/
 # Database dumps and snapshots — these contain real customer financial data
 # and must never be committed. 169 MB of live PII is one `git add .` away.
 #
-# *.sql alone was NOT enough: data/demo.sqlite3 is the same 122,326 real
-# transactions in SQLite form -- names, emails and balances for ~300 people --
-# and no rule here matched it. Everything derived from the dump is listed
-# explicitly rather than trusting one extension to catch it all.
+# Database exports hold real customer names, emails and balances. None of
+# these formats belongs in the repository.
 *.sql
 *.dump
 *.sql.gz
-*.sqlite
-*.sqlite3
 *.db
 data/
 

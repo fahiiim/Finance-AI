@@ -19,7 +19,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 import jwt
-from fastapi import Header
+from fastapi import Depends, Header
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import settings
 from app.core.exceptions import AuthenticationError, UserContextError
@@ -128,9 +129,23 @@ def _enforce_max_lifetime(payload: dict) -> None:
         raise AuthenticationError("The service token lifetime exceeds the permitted maximum.")
 
 
+# Declares the bearer scheme to OpenAPI so Swagger UI shows an Authorize button.
+# Swagger silently discards any header PARAMETER named "authorization", so
+# without this the docs page could not authenticate at all. auto_error=False:
+# the check itself stays in get_user_context below, with its own error type.
+_bearer_scheme = HTTPBearer(
+    auto_error=False,
+    description="Service-signed JWT (HS256) asserting sub=<application_users.id>. Paste the token only; "
+    "Swagger adds the 'Bearer ' prefix.",
+)
+
+
 async def get_user_context(
-    authorization: str | None = Header(default=None),
+    # Still read directly so every client works as before; hidden from the
+    # schema because Swagger would render a field that it never sends.
+    authorization: str | None = Header(default=None, include_in_schema=False),
     x_session_id: str | None = Header(default=None, alias="X-Session-Id"),
+    _scheme: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
 ) -> UserContext:
     """
     FastAPI dependency that establishes the trusted UserContext for a request.

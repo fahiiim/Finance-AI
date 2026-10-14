@@ -106,6 +106,9 @@ _SYNONYMS = {
     "current week": "this week",
     "previous week": "last week",
     "prior week": "last week",
+    "past weekend": "last weekend",
+    "previous weekend": "last weekend",
+    "prior weekend": "last weekend",
     "current year": "this year",
     "year to date": "this year",
     "ytd": "this year",
@@ -556,6 +559,18 @@ def resolve_weekday_in_period(phrase: str, timezone: str) -> tuple[ResolvedDateR
     return window, _WEEKDAYS[match.group("day")]
 
 
+# "the rest of the month", "remainder of this month", "until the end of the
+# month". Forward-looking, so it runs from today to month end -- the one window
+# the resolver otherwise could not express, which turned "how much do I owe in
+# bills for the rest of this month?" into a clarifying question.
+_REST_OF_MONTH = re.compile(
+    r"\b(?:rest|remainder|remaining(?:\s+days?)?)\s+of\s+(?:the\s+|this\s+)?(?:current\s+)?month\b"
+    r"|\b(?:until|till|through|to|by)\s+(?:the\s+)?end\s+of\s+(?:the\s+|this\s+)?month\b"
+    r"|\bend\s+of\s+(?:the\s+|this\s+)month\b"
+    r"|\bmonth[- ]end\b"
+)
+
+
 def resolve_date_phrase(phrase: str, timezone: str) -> ResolvedDateRange | None:
     """
     Resolve a natural-language date phrase to a concrete inclusive date range
@@ -568,6 +583,10 @@ def resolve_date_phrase(phrase: str, timezone: str) -> ResolvedDateRange | None:
 
     normalized = _canonicalize(phrase)
     today = _now_in_tz(timezone).date()
+
+    if _REST_OF_MONTH.search((phrase or "").lower()):
+        _, month_end = _month_bounds(today.year, today.month)
+        return ResolvedDateRange(start=today, end=month_end, label="rest_of_month")
 
     weekday = _resolve_weekday(normalized, today)
     if weekday is not None:
@@ -640,6 +659,16 @@ def resolve_date_phrase(phrase: str, timezone: str) -> ResolvedDateRange | None:
         saturday = today - timedelta(days=today.weekday()) + timedelta(days=5)
         sunday = saturday + timedelta(days=1)
         return ResolvedDateRange(start=saturday, end=sunday, label="this_weekend")
+
+    if normalized == "last weekend":
+        # The Saturday/Sunday of the week before this one -- NOT the same as
+        # shifting "this weekend" back by its own length (that lands on
+        # Thursday/Friday; see previous_calendar_period below for the
+        # matching bug on the comparison side).
+        this_saturday = today - timedelta(days=today.weekday()) + timedelta(days=5)
+        saturday = this_saturday - timedelta(days=7)
+        sunday = saturday + timedelta(days=1)
+        return ResolvedDateRange(start=saturday, end=sunday, label="last_weekend")
 
     for prefix, direction in (("past ", -1), ("next ", 1)):
         if normalized.startswith(prefix) and normalized.endswith(" days"):
@@ -714,6 +743,17 @@ def previous_calendar_period(date_range: ResolvedDateRange) -> ResolvedDateRange
     month-scoped (e.g. "past 30 days"), where calendar days mean nothing.
     """
     start, end = date_range.start, date_range.end
+
+    # A weekend is always Saturday-Sunday. Shifting it back by its own
+    # length (duration + 1 day, same as any other short range) lands on
+    # Thursday-Friday, not the actual previous weekend -- confirmed live:
+    # "did I spend more than usual this weekend?" compared against Thu/Fri.
+    if "weekend" in date_range.label:
+        return ResolvedDateRange(
+            start=start - timedelta(days=7),
+            end=end - timedelta(days=7),
+            label="previous_" + date_range.label,
+        )
 
     month_scoped = start.day == 1 and (start.year, start.month) == (end.year, end.month)
     if not month_scoped:

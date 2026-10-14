@@ -33,9 +33,8 @@ Full detail: `docs/architecture.md`.
 ## Requirements
 
 - Python 3.12+
-- An OpenAI API key (for anything beyond `BACKEND_INTEGRATION_MODE=mock`
-  local testing, you'll also want a real key to exercise `/api/v1/chat` end
-  to end)
+- An OpenAI API key (to exercise `/api/v1/chat` end to end)
+- The backend's internal API base URL and service token
 
 ## Installation
 
@@ -58,10 +57,10 @@ uvicorn app.main:app --reload
 - Liveness: http://localhost:8000/health
 - Readiness: http://localhost:8000/ready
 
-By default `BACKEND_INTEGRATION_MODE=mock`, so the service runs fully
-locally with deterministic fake financial data — no real backend or
-database needed to try it out. See `docs/backend-integration.md` before
-pointing it at a real backend.
+The service reads financial data from the live backend through its internal
+API (`BACKEND_INTEGRATION_MODE=backend_api`, with `BACKEND_API_BASE_URL` and
+`BACKEND_API_SERVICE_TOKEN` set). See `docs/backend-integration.md` for the
+contract.
 
 ## Authentication
 
@@ -82,7 +81,7 @@ See `.env.example` for the full list with inline documentation. Key ones:
 | Variable | Purpose |
 |---|---|
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | LLM credentials + model (fully configurable, no hardcoded model name) |
-| `BACKEND_INTEGRATION_MODE` | `mock` \| `backend_api` \| `read_only_db` |
+| `BACKEND_INTEGRATION_MODE` | `backend_api` (the live internal API) |
 | `BACKEND_API_BASE_URL` / `BACKEND_API_SERVICE_TOKEN` | Used when mode is `backend_api` |
 | `SERVICE_JWT_SECRET` | Verifies the trusted identity token from the existing backend |
 | `CONVERSATION_RECENT_MESSAGE_LIMIT` / `CONVERSATION_SUMMARY_TRIGGER_LENGTH` | Context-window strategy |
@@ -123,11 +122,8 @@ docs/                          architecture, backend-integration, api, security,
 
 ## Backend integration
 
-See `docs/backend-integration.md` for the assumed integration contract —
-**no real backend/schema was available when this was built**, so the exact
-endpoint paths and field names are documented assumptions to reconcile
-against the real system. Switching between `backend_api`, `read_only_db`,
-and `mock` modes is a configuration-only change
+See `docs/backend-integration.md` for the verified integration contract. The
+data source is chosen in one place
 (`app/services/backend_client.py:get_backend_client`).
 
 ## Prompt architecture

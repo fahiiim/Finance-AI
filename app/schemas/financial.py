@@ -132,6 +132,11 @@ class Liability(OwnedRecord):
     balance: Money
     interest_rate: Decimal | None = None
     minimum_payment: Money | None = None
+    # Payment status, where the source records it (credit cards in this
+    # database do). None means unknown, not "fine".
+    is_overdue: bool | None = None
+    next_payment_due_date: date | None = None
+    last_payment_date: date | None = None
 
 
 class FinancialScore(OwnedRecord):
@@ -142,6 +147,113 @@ class FinancialScore(OwnedRecord):
     score_range_max: int
     factors: list[str] = Field(default_factory=list)
     as_of_date: date | None = None
+
+
+class AlloScore(OwnedRecord):
+    """
+    The app's own 0-100 financial-health score, with per-dimension insight.
+
+    Deliberately NOT merged into FinancialScore: that type's score_range is
+    a credit-bureau scale (e.g. 300-850) and its factors are a flat string
+    list. This is a different scoring system entirely (overall + flow +
+    stability + retirement, each with its own tier and narrative insight) --
+    conflating them would mean forcing one shape onto two unrelated scores.
+    """
+
+    overall_score: int
+    overall_tier: str
+    overall_insight: str | None = None
+    flow_score: int
+    flow_tier: str
+    flow_insight: str | None = None
+    stability_score: int
+    stability_tier: str
+    stability_insight: str | None = None
+    retirement_score: int
+    retirement_tier: str
+    retirement_insight: str | None = None
+    period_start: date
+    period_end: date
+
+
+class SavingsGoal(OwnedRecord):
+    """A user-set savings target. The backend stores the target and dates;
+    progress toward it is derived (see app/tools/savings_goal.py), never
+    stored, since there is no "current progress" column to pass through."""
+
+    goal_id: str
+    target_amount: Money
+    monthly_target: Money | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    # Progress as the BACKEND computes it (what the app shows), when it serves
+    # one. None means the source has no such figure and the tool derives
+    # progress from income minus expenses instead.
+    saved_amount: Money | None = None
+
+
+class LiabilitySnapshot(OwnedRecord):
+    """A point-in-time total debt balance, for trend questions ('is my debt
+    getting better or worse'). Deliberately just account_type + balance +
+    date -- the per-account detail lives in Liability; this is for the
+    aggregate trend, not a second copy of the current breakdown."""
+
+    account_id: str
+    account_type: str
+    balance: Money
+    snapshot_date: date
+
+
+class RetirementReadiness(OwnedRecord):
+    """
+    Backend-computed retirement-readiness figures, parsed from the Allo
+    Score snapshot's raw_metrics JSON. Every field here is something the
+    backend already computed -- this service structures and passes it
+    through, never recomputes "years behind" or similar itself.
+    """
+
+    age: int | None = None
+    target_retirement_age: int | None = None
+    years_remaining: int | None = None
+    retirement_target: Money | None = None
+    future_assets: Money | None = None
+    monthly_retirement_income_goal: Money | None = None
+    annual_contribution: Money | None = None
+    savings_rate: Decimal | None = None
+    investment_rate: Decimal | None = None
+    readiness_ratio: Decimal | None = None
+    # Current position, from the same metrics -- distinct from `future_assets`,
+    # which is a PROJECTION at retirement age and was once quoted as "what you
+    # have saved" (a negative $716,979).
+    total_savings: Money | None = None
+    total_assets: Money | None = None
+    total_cash: Money | None = None
+    total_debt: Money | None = None
+    investment_contributions: Money | None = None
+    investment_contribution_months: int | None = None
+
+
+class NetWorth(OwnedRecord):
+    """
+    The backend's own net-worth figure, as the app itself displays it.
+
+    Distinct from the figure net_worth.py derives from accounts + holdings -
+    debts: the backend also counts manually entered assets, property,
+    vehicles and business value, so the two legitimately differ. When the
+    backend supplies this, it is what the user sees in the app and is
+    therefore the number the assistant must agree with.
+    """
+
+    net_worth: Money
+    total_assets: Money
+    total_liabilities: Money
+    as_of_date: date | None = None
+    # Month-end history as the backend serves it, oldest first:
+    # [{"month": "May 2026", "net_worth": ..., "total_assets": ..., "total_liabilities": ...}]
+    history: list[dict] = Field(default_factory=list)
+    # Component name -> value, e.g. {"property": Money(...)}. Kept as the
+    # backend labels them: this service does not reinterpret the breakdown.
+    asset_breakdown: dict[str, Money] = Field(default_factory=dict)
 
 
 class FinancialSummary(OwnedRecord):

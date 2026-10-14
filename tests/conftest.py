@@ -3,8 +3,13 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("SERVICE_JWT_SECRET", "test-secret-do-not-use-in-production-32bytes")
-os.environ.setdefault("BACKEND_INTEGRATION_MODE", "mock")
+os.environ.setdefault("BACKEND_INTEGRATION_MODE", "backend_api")
+os.environ.setdefault("BACKEND_API_BASE_URL", "https://backend.test.invalid/MyFi/api")
+os.environ.setdefault("BACKEND_API_SERVICE_TOKEN", "test-service-token")
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
+# Tests must not depend on a developer's local .env: strict ownership is a
+# deployment setting, and the tests that need it switch it on themselves.
+os.environ["STRICT_DATA_OWNERSHIP"] = "false"
 
 from datetime import UTC, datetime, timedelta
 
@@ -15,7 +20,7 @@ from app.core.config import get_settings, settings
 from app.core.security import UserContext
 from app.llm.base import LLMProvider
 from app.schemas.planner import RawExecutionPlan
-from app.services.mock_backend_client import MockBackendClient
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -58,8 +63,8 @@ def make_service_token(
 
 
 @pytest.fixture
-def mock_backend():
-    return MockBackendClient()
+def in_memory_backend():
+    return InMemoryBackendClient()
 
 
 class FakeLLMProvider(LLMProvider):

@@ -33,14 +33,14 @@ from app.schemas.financial import (
 )
 from app.schemas.planner import ExecutionPlan, Intent, ResolvedDateRange
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from app.tools.budgets import get_budgets_tool
 from app.tools.investments import get_investments_tool
 from app.tools.liabilities import get_liabilities_tool
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
-class EmptyBackend(MockBackendClient):
+class EmptyBackend(InMemoryBackendClient):
     """A backend that can see nothing -- which is not a backend seeing zero."""
 
     async def get_investments(self, context):
@@ -93,14 +93,14 @@ async def test_budgets_that_cannot_be_served_are_marked_missing():
 async def test_available_data_is_still_marked_available():
     """The flag has to discriminate, or the response layer learns to ignore it."""
     result = await get_investments_tool(
-        FinancialService(MockBackendClient()), make_user_context(user_id="42"), _plan(Intent.INVESTMENT_QUERY)
+        FinancialService(InMemoryBackendClient()), make_user_context(user_id="42"), _plan(Intent.INVESTMENT_QUERY)
     )
     assert result["availability"] == DataAvailability.AVAILABLE.value
     assert Decimal(result["total_market_value"]) > 0
 
 
-class NoMinimumPaymentBackend(MockBackendClient):
-    """Balances are known; the monthly minimums are not. The real SQLite case."""
+class NoMinimumPaymentBackend(InMemoryBackendClient):
+    """Balances are known; the monthly minimums are not. Seen on real data."""
 
     async def get_liabilities(self, context):
         return [
@@ -132,7 +132,7 @@ async def test_debt_to_income_is_unavailable_not_zero_without_minimum_payments()
     assert Decimal(result["total_liabilities"]) > 0, "the balance itself IS known"
 
 
-class NoIncomeBackend(MockBackendClient):
+class NoIncomeBackend(InMemoryBackendClient):
     async def get_financial_summary(self, context, *, start, end):
         return FinancialSummary(
             owner_user_id=context.user_id,
@@ -193,7 +193,7 @@ def test_an_overspent_most_recent_month_means_no_streak():
 async def test_the_savings_answer_carries_both_an_amount_and_a_rate():
     """Reporting only a rate forced the model to derive the amount in prose."""
     result, tools = await route_and_execute(
-        FinancialService(MockBackendClient()),
+        FinancialService(InMemoryBackendClient()),
         make_user_context(user_id="42"),
         _plan(Intent.SAVINGS_ANALYSIS),
     )

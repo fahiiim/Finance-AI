@@ -36,7 +36,7 @@ from app.utils.merchants import (
 # The vocabularies of the two backends this service supports. They share no
 # labels, which is the point: resolution must work against the data in hand.
 PLAID_LABELS = ["Food And Drink", "General Merchandise", "Rent And Utilities", "Transportation", "Medical"]
-MOCK_LABELS = ["Groceries", "Dining", "Shopping", "Utilities", "Transportation", "Subscriptions"]
+SAMPLE_LABELS = ["Groceries", "Dining", "Shopping", "Utilities", "Transportation", "Subscriptions"]
 
 
 def _txn(merchant: str, amount: str, *, category="Food And Drink", subcategory=None, day=5) -> Transaction:
@@ -51,7 +51,7 @@ def _txn(merchant: str, amount: str, *, category="Food And Drink", subcategory=N
     )
 
 
-# Descriptors copied verbatim from the production dump.
+# Descriptors copied verbatim from production data.
 REAL_TRANSACTIONS = [
     _txn("CHECKCARD 0607 CHEESECAKE SUMMERLIN LAS VEGAS NV XXXXX0061XXXXXXXXXX7485", "81.80",
          subcategory="Restaurant", day=7),
@@ -104,7 +104,7 @@ def test_everyday_words_reach_plaid_labels(phrase, expected):
 )
 def test_the_same_words_reach_a_different_backends_labels(phrase, expected):
     """Resolution is against the data in hand, not a hard-coded taxonomy."""
-    match = resolve_category(phrase, MOCK_LABELS)
+    match = resolve_category(phrase, SAMPLE_LABELS)
     assert match is not None and match.category == expected
 
 
@@ -116,7 +116,7 @@ def test_a_narrower_word_reports_what_it_wanted():
 
     # ...but a word that IS the label is not narrower than anything.
     assert resolve_category("food and drinks", PLAID_LABELS).subcategory is None
-    assert resolve_category("dining", MOCK_LABELS).subcategory is None
+    assert resolve_category("dining", SAMPLE_LABELS).subcategory is None
 
 
 def test_a_merchant_name_is_not_mistaken_for_a_category():

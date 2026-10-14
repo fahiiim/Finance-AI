@@ -30,12 +30,40 @@ class Intent(str, Enum):
     SPENDING_SPIKE = "SPENDING_SPIKE"
     PERIOD_COMPARISON = "PERIOD_COMPARISON"
     SAVINGS_ANALYSIS = "SAVINGS_ANALYSIS"
+    # "Am I on track for my savings goal?" / "how much do I need to save
+    # monthly?" / "when will I hit my goal?" -- all need the stored goal
+    # (target, monthly target, deadline), distinct from SAVINGS_ANALYSIS's
+    # generic savings-rate-over-a-period question.
+    SAVINGS_GOAL_QUERY = "SAVINGS_GOAL_QUERY"
     CASH_FLOW_ANALYSIS = "CASH_FLOW_ANALYSIS"
     AFFORDABILITY_ANALYSIS = "AFFORDABILITY_ANALYSIS"
     FORECAST_QUERY = "FORECAST_QUERY"
     INVESTMENT_QUERY = "INVESTMENT_QUERY"
     LIABILITY_QUERY = "LIABILITY_QUERY"
     FINANCIAL_SCORE_QUERY = "FINANCIAL_SCORE_QUERY"
+    # The app's own 0-100 financial-health score (flow/stability/retirement) --
+    # distinct from FINANCIAL_SCORE_QUERY's credit-bureau score. See AlloScore.
+    ALLO_SCORE_QUERY = "ALLO_SCORE_QUERY"
+    # Total assets (liquid accounts + investments) minus total liabilities.
+    NET_WORTH_QUERY = "NET_WORTH_QUERY"
+    # Backend-computed retirement readiness (target age, readiness ratio,
+    # projected future assets) -- distinct from a generic investment query.
+    RETIREMENT_QUERY = "RETIREMENT_QUERY"
+    # Spendable-cash questions: safe to spend/save, cushion, emergency fund,
+    # runway, cash left after bills, month-end sufficiency.
+    LIQUIDITY_QUERY = "LIQUIDITY_QUERY"
+    # What-if debt questions: extra monthly payment, paying off the smallest
+    # debt, late or at-risk payments.
+    DEBT_SCENARIO_QUERY = "DEBT_SCENARIO_QUERY"
+    # Where spending could be trimmed: discretionary categories, top
+    # merchants and subscriptions over recent complete months.
+    SAVINGS_OPPORTUNITIES = "SAVINGS_OPPORTUNITIES"
+    # Spending since the most recent paycheck (anchored to the deposit, not
+    # the calendar month).
+    SPENDING_SINCE_PAYCHECK = "SPENDING_SINCE_PAYCHECK"
+    # Broad recap across cash flow, net worth, debt, bills, scores
+    # ("catch me up", "summarize my finances", "why isn't my net worth growing").
+    FINANCIAL_OVERVIEW = "FINANCIAL_OVERVIEW"
     FINANCIAL_CALCULATION = "FINANCIAL_CALCULATION"
     OVERALL_FINANCIAL_HEALTH = "OVERALL_FINANCIAL_HEALTH"
     UNKNOWN = "UNKNOWN"

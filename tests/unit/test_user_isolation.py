@@ -14,12 +14,12 @@ from tests.conftest import make_user_context
 
 
 @pytest.mark.asyncio
-async def test_mock_backend_gives_different_data_per_user(mock_backend):
+async def test_in_memory_backend_gives_different_data_per_user(in_memory_backend):
     ctx_a = make_user_context(user_id="user-A")
     ctx_b = make_user_context(user_id="user-B")
 
-    accounts_a = await mock_backend.get_accounts(ctx_a)
-    accounts_b = await mock_backend.get_accounts(ctx_b)
+    accounts_a = await in_memory_backend.get_accounts(ctx_a)
+    accounts_b = await in_memory_backend.get_accounts(ctx_b)
 
     ids_a = {a.account_id for a in accounts_a}
     ids_b = {a.account_id for a in accounts_b}
@@ -29,12 +29,12 @@ async def test_mock_backend_gives_different_data_per_user(mock_backend):
 
 
 @pytest.mark.asyncio
-async def test_mock_backend_transactions_are_scoped_per_user(mock_backend):
+async def test_in_memory_backend_transactions_are_scoped_per_user(in_memory_backend):
     ctx_a = make_user_context(user_id="user-A")
     ctx_b = make_user_context(user_id="user-B")
 
-    txns_a = await mock_backend.get_transactions(ctx_a)
-    txns_b = await mock_backend.get_transactions(ctx_b)
+    txns_a = await in_memory_backend.get_transactions(ctx_a)
+    txns_b = await in_memory_backend.get_transactions(ctx_b)
 
     txn_ids_a = {t.transaction_id for t in txns_a}
     txn_ids_b = {t.transaction_id for t in txns_b}

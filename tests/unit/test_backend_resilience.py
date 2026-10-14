@@ -1,10 +1,9 @@
 """
 How this service behaves when the production backend is slow, failing, or partial.
 
-The demo runs on local SQLite, where every fetch is instant and nothing ever
-times out. Production runs on `BackendAPIClient` over HTTP to Laravel, where
+A local or in-memory source answers instantly and nothing ever times out. Production runs on `BackendAPIClient` over HTTP to Laravel, where
 the opposite is true — and the failure modes that only exist on that path are
-exactly the ones no demo will ever surface:
+exactly the ones no local run will ever surface:
 
   - A backend timeout was wrapped into ToolExecutionError and reached the user
     mid-conversation as a red "500 tool_execution_error" box. A slow backend
@@ -35,8 +34,8 @@ from app.orchestrator.intent_router import route_and_execute
 from app.schemas.financial import FinancialSummary, Money
 from app.schemas.planner import ExecutionPlan, Intent, ResolvedDateRange
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 AUGUST = ResolvedDateRange(start=date(2026, 8, 1), end=date(2026, 8, 28), label="this_month")
 
@@ -52,7 +51,7 @@ def _plan(intent: Intent, **kw) -> ExecutionPlan:
     )
 
 
-class _Failing(MockBackendClient):
+class _Failing(InMemoryBackendClient):
     """A backend that fails the way a real one does: on the read, not the connect."""
 
     def __init__(self, error: Exception) -> None:
@@ -111,7 +110,7 @@ async def test_a_cross_user_breach_is_never_degraded_into_an_answer():
         )
 
 
-class _CountingBackend(MockBackendClient):
+class _CountingBackend(InMemoryBackendClient):
     """Records every call so the request COST can be asserted, not just the result."""
 
     def __init__(self) -> None:
@@ -135,10 +134,10 @@ async def test_the_savings_streak_reads_aggregates_not_a_year_of_rows():
     the HTTP backend the difference measured 584 KB against 2.3 KB.
 
     The assertion is on the WINDOW SIZE the router asks for, not on the call
-    count, because what each backend does internally differs: the mock and
-    SQLite clients derive a summary by reading transactions, while
-    BackendAPIClient -- the production one -- serves it from a real
-    /internal/financial-summary endpoint. The router's contract is the same
+    count, because what each backend does internally differs: the test double
+    derives a summary by reading transactions, while BackendAPIClient -- the
+    production one -- also derives it from transactions, using this service's
+    one definition of an expense. The router's contract is the same
     either way: never ask for a window wider than a month.
     """
     backend = _CountingBackend()
@@ -161,7 +160,7 @@ async def test_the_savings_streak_reads_aggregates_not_a_year_of_rows():
         assert (end - start).days <= 40, f"a {(end - start).days}-day transaction fetch"
 
 
-class _PartiallyFailingBackend(MockBackendClient):
+class _PartiallyFailingBackend(InMemoryBackendClient):
     """One month of history is unavailable; everything else works."""
 
     async def get_financial_summary(self, context, *, start, end):
@@ -189,7 +188,7 @@ async def test_one_unavailable_month_does_not_lose_the_savings_answer():
     assert failed["income"] is None, "a month we could not read must not report a figure"
 
 
-class _SlowHistoryBackend(MockBackendClient):
+class _SlowHistoryBackend(InMemoryBackendClient):
     """The merchant history lookup fails; the period lookup works."""
 
     def __init__(self) -> None:
@@ -227,13 +226,13 @@ async def test_a_merchant_question_without_a_name_does_not_raise():
     chat window. Showing where the money went is a better answer than an error.
     """
     result, _ = await route_and_execute(
-        FinancialService(MockBackendClient()), make_user_context(user_id="42"), _plan(Intent.MERCHANT_ANALYSIS)
+        FinancialService(InMemoryBackendClient()), make_user_context(user_id="42"), _plan(Intent.MERCHANT_ANALYSIS)
     )
     assert result["no_merchant_named"] is True
     assert result["top_merchants"], "it names real merchants to choose from"
 
 
-class _ZeroIncomeBackend(MockBackendClient):
+class _ZeroIncomeBackend(InMemoryBackendClient):
     async def get_financial_summary(self, context, *, start, end):
         return FinancialSummary(
             owner_user_id=context.user_id,

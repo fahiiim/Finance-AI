@@ -298,7 +298,7 @@ Source: `plaid_transactions`. Mapping:
 be counted in every total.
 
 **`transaction_id` is null for manually-entered transactions — return them
-anyway.** 56 rows in the dump you shared were typed into the app by the user
+anyway.** 56 rows in the data you shared were typed into the app by the user
 rather than imported from Plaid, and that column is null for every one of
 them. We found this by running the assistant against your real data: skipping
 those rows understated one user's July spending by exactly $500, the amount
@@ -327,7 +327,7 @@ endpoint for it. Two consequences for you:
 a user's own accounts should be excluded from spending totals, or the
 assistant double-counts money the user moved between their own accounts.
 
-**But the flag alone must NOT be the test.** In the dump, 2,252 rows carry it
+**But the flag alone must NOT be the test.** In the data, 2,252 rows carry it
 and only 911 are categorised `TRANSFER_IN`/`TRANSFER_OUT`; the rest are real
 purchases. Excluding all of them understated one user's food spending by 45%
 and hid named merchants entirely. Exclude a flagged row only when its category
@@ -526,7 +526,7 @@ In `plaid_transactions`, a **positive** `amount` means money **left** the
 account (a purchase), and a **negative** amount means money **came in** (a
 deposit). This is Plaid's own convention.
 
-I verified it against 122,326 real rows in the dump:
+I verified it against 122,326 real rows:
 
 | Row type | Positive | Negative |
 |---|---|---|

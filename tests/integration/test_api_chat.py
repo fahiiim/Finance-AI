@@ -9,13 +9,13 @@ from app.orchestrator.orchestrator import Orchestrator
 from app.schemas.planner import Intent, RawExecutionPlan
 from app.services.conversation_service import ConversationService, InMemoryConversationStore
 from app.services.memory_service import MemoryService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import FakeLLMProvider, make_service_token
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 
 def _build_test_orchestrator(plans, response_text="You spent $295.00 this month."):
     llm = FakeLLMProvider(plans=plans, response_text=response_text)
-    backend = MockBackendClient()
+    backend = InMemoryBackendClient()
     conversations = ConversationService(InMemoryConversationStore())
     memory = MemoryService(conversations, llm)
     return Orchestrator(llm_provider=llm, backend_client=backend, conversation_service=conversations, memory_service=memory)

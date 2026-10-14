@@ -1,7 +1,7 @@
 """
 What one question COSTS the backend.
 
-On SQLite every fetch is free, so none of this shows up in a demo. Against the
+On a local source every fetch is free, so none of this shows up in a local run. Against the
 production HTTP backend each call is a round trip and each response is real
 bytes — measured on one live user, a year of transactions is 2,344 rows and
 584 KB, against a client timeout.
@@ -21,8 +21,8 @@ import pytest
 from app.orchestrator.intent_router import route_and_execute
 from app.schemas.planner import ExecutionPlan, Intent, ResolvedDateRange
 from app.services.financial_service import FinancialService
-from app.services.mock_backend_client import MockBackendClient
 from tests.conftest import make_user_context
+from tests.support.in_memory_backend import InMemoryBackendClient
 
 AUGUST = ResolvedDateRange(start=date(2026, 8, 1), end=date(2026, 8, 28), label="this_month")
 
@@ -34,7 +34,7 @@ def _plan(intent: Intent, **kw) -> ExecutionPlan:
     )
 
 
-class _Recording(MockBackendClient):
+class _Recording(InMemoryBackendClient):
     """Counts backend calls, the way the HTTP client would count round trips."""
 
     def __init__(self) -> None:
@@ -144,7 +144,7 @@ async def test_no_negative_claim_is_made_from_the_weaker_backend_matcher():
     proves nothing -- the result must not claim the search was exhaustive.
     """
     result, _ = await route_and_execute(
-        FinancialService(MockBackendClient()),
+        FinancialService(InMemoryBackendClient()),
         make_user_context(user_id="42"),
         _plan(Intent.MERCHANT_ANALYSIS, merchant_filter="Nowhere Ltd"),
     )

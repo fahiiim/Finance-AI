@@ -31,6 +31,7 @@ from app.core.security import UserContext
 from app.schemas.planner import ExecutionPlan, Intent
 from app.services.financial_service import FinancialService
 from app.tools.accounts import get_accounts_tool
+from app.tools.allo_score import get_allo_score_tool
 from app.tools.analytics import compare_periods, detect_spending_spike
 from app.tools.bills import get_bills_tool
 from app.tools.budgets import get_budgets_tool
@@ -42,6 +43,7 @@ from app.tools.calculations import (
     calculate_savings_rate,
     calculate_total_spending,
 )
+from app.tools.debt_scenarios import get_debt_scenario_tool
 from app.tools.expenses import get_expenses_tool
 from app.tools.filters import apply_filters
 from app.tools.financial_scores import get_financial_score_tool
@@ -49,12 +51,23 @@ from app.tools.forecasting import forecast_spending
 from app.tools.income import get_income_tool
 from app.tools.investments import get_investments_tool
 from app.tools.liabilities import get_liabilities_tool
+from app.tools.liquidity import get_cash_position_tool
+from app.tools.net_worth import get_net_worth_tool
+from app.tools.overview import get_overview_tool
 from app.tools.recurring import get_recurring_transactions_tool
+from app.tools.retirement import get_retirement_tool
+from app.tools.savings_goal import get_savings_goal_tool
+from app.tools.savings_opportunities import get_savings_opportunities_tool
+from app.tools.since_paycheck import get_spending_since_paycheck_tool
 from app.tools.subscriptions import get_subscriptions_tool
 from app.tools.transactions import get_transactions_tool
-from app.utils.dates import month_bounds, previous_calendar_period
+from app.utils.dates import current_date_in, month_bounds, previous_calendar_period
+from app.utils.liquidity import liquid_accounts, liquid_cash_total
 from app.utils.merchants import top_merchants
 from app.utils.money import quantize
+from app.utils.transactions import expense_amount, income_amount
+from app.utils.transactions import expenses as expenses_from
+from app.utils.transactions import income as income_from
 
 logger = get_logger(__name__)
 
@@ -219,11 +232,13 @@ async def _handle_merchant_analysis(fs: FinancialService, ctx: UserContext, plan
 
 async def _handle_spending_spike(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
     date_range = await _require_date_range(plan)
-    transactions = await fs.get_transactions(ctx, start=date_range.start, end=date_range.end)
+    start, end, clamp_note = _elapsed_range(date_range, current_date_in(ctx.timezone))
+    transactions = await fs.get_transactions(ctx, start=start, end=end)
     analysis = detect_spending_spike(transactions)
     return (
         {
-            "period": {"start": date_range.start.isoformat(), "end": date_range.end.isoformat()},
+            "period": {"start": start.isoformat(), "end": end.isoformat()},
+            "period_note": clamp_note,
             "mean_daily_spending": str(analysis.mean_daily_spending),
             "stddev_daily_spending": str(analysis.stddev_daily_spending),
             "spikes": [
@@ -352,8 +367,8 @@ async def _monthly_net_history(fs: FinancialService, ctx: UserContext, months: i
     a collapse in spending rather than a calendar artefact.
 
     AGGREGATES, NOT ROWS. The first version of this pulled a year of raw
-    transactions in one call to bucket them here. Against SQLite that is
-    instant; against the production HTTP backend it was a 584 KB response
+    transactions in one call to bucket them here. Against an in-memory or local
+    source that is instant; against the production HTTP backend it was a 584 KB response
     (2,344 rows for one real user, 2,530 for the heaviest) on EVERY savings
     question, with a 10-second client timeout. get_financial_summary already
     returns exactly the two numbers this needs, so twelve of those -- issued
@@ -364,7 +379,7 @@ async def _monthly_net_history(fs: FinancialService, ctx: UserContext, months: i
     data rather than failing the whole answer, because the savings rate the
     user actually asked for does not depend on any of this.
     """
-    today = date.today()
+    today = current_date_in(ctx.timezone)
     first_of_this_month = date(today.year, today.month, 1)
     starts = _month_starts(months, first_of_this_month)
 
@@ -467,22 +482,96 @@ async def _handle_savings_analysis(fs: FinancialService, ctx: UserContext, plan:
     )
 
 
+def _elapsed_range(date_range, today: date | None = None) -> tuple[date, date, str | None]:
+    """
+    Clamp a window to time that has already happened.
+
+    Explanatory and historical questions ("why is my cash flow negative?",
+    "why did my spending jump this month?") describe what HAS happened. The
+    planner occasionally hands them a forward window -- observed as
+    "September 13 to October 13" on September 13 -- and the answer then
+    explained "this month" using days that had not occurred. Anything past
+    today is cut off; a window that starts in the future falls back to the
+    current month so far.
+    """
+    today = today or date.today()
+    start, end = date_range.start, date_range.end
+    if start > today:
+        return date(today.year, today.month, 1), today, (
+            "The requested window had not started yet, so the current month so far is used instead."
+        )
+    if end > today:
+        return start, today, f"The window was cut off at today ({today.isoformat()}); future days are not counted."
+    return start, end, None
+
+
+def _weekly_cash_flow(income_txns: list, expense_txns: list, start: date, end: date) -> list[dict]:
+    """Income, expenses and net per calendar week (Monday-Sunday), clipped to [start, end]."""
+    weeks: dict[date, dict[str, Decimal]] = {}
+    for txn in income_txns:
+        week = txn.date - timedelta(days=txn.date.weekday())
+        bucket = weeks.setdefault(week, {"income": Decimal("0"), "expenses": Decimal("0")})
+        bucket["income"] += income_amount(txn)
+    for txn in expense_txns:
+        week = txn.date - timedelta(days=txn.date.weekday())
+        bucket = weeks.setdefault(week, {"income": Decimal("0"), "expenses": Decimal("0")})
+        bucket["expenses"] += expense_amount(txn)
+
+    first_week = start - timedelta(days=start.weekday())
+    rows: list[dict] = []
+    cursor = first_week
+    while cursor <= end:
+        bucket = weeks.get(cursor, {"income": Decimal("0"), "expenses": Decimal("0")})
+        rows.append(
+            {
+                "week_start": max(cursor, start).isoformat(),
+                "week_end": min(cursor + timedelta(days=6), end).isoformat(),
+                "income": str(quantize(bucket["income"])),
+                "expenses": str(quantize(bucket["expenses"])),
+                "net": str(quantize(bucket["income"] - bucket["expenses"])),
+                "has_data": bool(bucket["income"] or bucket["expenses"]),
+            }
+        )
+        cursor += timedelta(days=7)
+    return rows
+
+
 async def _handle_cash_flow_analysis(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
     date_range = await _require_date_range(plan)
-    summary = await fs.get_financial_summary(ctx, start=date_range.start, end=date_range.end)
+    start, end, clamp_note = _elapsed_range(date_range, current_date_in(ctx.timezone))
+    summary = await fs.get_financial_summary(ctx, start=start, end=end)
     income = summary.total_income.amount if summary.total_income else Decimal("0")
-    expenses = summary.total_expenses.amount if summary.total_expenses else Decimal("0")
-    cash_flow = calculate_cash_flow(income, expenses)
-    return (
-        {
-            "period": {"start": date_range.start.isoformat(), "end": date_range.end.isoformat()},
-            "total_income": str(income),
-            "total_expenses": str(expenses),
-            "net_cash_flow": str(cash_flow),
-            "currency": ctx.currency,
-        },
-        ["get_financial_summary", "calculate_cash_flow"],
-    )
+    expenses_total = summary.total_expenses.amount if summary.total_expenses else Decimal("0")
+    cash_flow = calculate_cash_flow(income, expenses_total)
+    result: dict = {
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "total_income": str(income),
+        "total_expenses": str(expenses_total),
+        "net_cash_flow": str(cash_flow),
+        "currency": ctx.currency,
+    }
+    if clamp_note:
+        result["period_note"] = clamp_note
+
+    # Week-by-week view, so "how much comes in and goes out each week" and
+    # "which week was worst this quarter" are answered from data rather than
+    # declared unavailable. Built from the same transactions the headline
+    # totals use, and net per week is the same sign rule as everywhere else.
+    if (end - start).days >= 7:
+        transactions = await fs.get_transactions(ctx, start=start, end=end)
+        weekly = _weekly_cash_flow(income_from(transactions), expenses_from(transactions), start, end)
+        result["weekly_breakdown"] = weekly
+        with_data = [w for w in weekly if w["has_data"]]
+        if with_data:
+            worst = min(with_data, key=lambda w: Decimal(w["net"]))
+            best = max(with_data, key=lambda w: Decimal(w["net"]))
+            result["worst_week"] = {k: worst[k] for k in ("week_start", "week_end", "net")}
+            result["best_week"] = {k: best[k] for k in ("week_start", "week_end", "net")}
+        result["weekly_note"] = (
+            "Weeks run Monday-Sunday; the first and last week are clipped to the period, so they may be partial."
+        )
+
+    return result, ["get_financial_summary", "get_transactions", "calculate_cash_flow"]
 
 
 async def _handle_affordability_analysis(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
@@ -524,10 +613,26 @@ async def _handle_affordability_analysis(fs: FinancialService, ctx: UserContext,
             ["get_accounts"],
         )
 
-    checking = next((a for a in accounts if a.type == "checking"), accounts[0])
-    available_balance = checking.balance.amount
+    # TOTAL spendable cash across every checking and savings account. Using
+    # a single checking account understated cash and produced "uncommitted
+    # balance" figures that matched one account, not the user's money.
+    cash_accounts = liquid_accounts(accounts)
+    if not cash_accounts:
+        return (
+            {
+                "available_balance": None,
+                "verdict": None,
+                "note": (
+                    "No checking or savings account is linked, so spendable cash is UNKNOWN -- not zero. "
+                    "Say no connected cash account was found; do not call the purchase unaffordable."
+                ),
+                "currency": ctx.currency,
+            },
+            ["get_accounts"],
+        )
+    available_balance = liquid_cash_total(accounts)
 
-    today = date.today()
+    today = current_date_in(ctx.timezone)
     upcoming_bills = await fs.get_bills(ctx, start=today, end=today + timedelta(days=14))
     upcoming_total = sum((b.amount.amount for b in upcoming_bills if not b.is_paid), Decimal("0"))
 
@@ -579,7 +684,7 @@ async def _handle_affordability_analysis(fs: FinancialService, ctx: UserContext,
 
 
 async def _handle_forecast_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
-    today = date.today()
+    today = current_date_in(ctx.timezone)
     lookback_start = today - timedelta(days=29)
     forecast_days = 30
     if plan.date_range:
@@ -618,6 +723,51 @@ async def _handle_financial_score_query(fs: FinancialService, ctx: UserContext, 
     return await get_financial_score_tool(fs, ctx, plan), ["get_financial_score"]
 
 
+async def _handle_allo_score_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_allo_score_tool(fs, ctx, plan), ["get_allo_score"]
+
+
+async def _handle_net_worth_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    result = await get_net_worth_tool(fs, ctx, plan)
+    if result.get("source") == "backend":
+        return result, ["get_net_worth"]
+    return result, ["get_net_worth", "get_accounts", "get_investments", "get_liabilities"]
+
+
+async def _handle_savings_goal_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    result = await get_savings_goal_tool(fs, ctx, plan)
+    if result.get("progress_source") == "backend":
+        return result, ["get_savings_goal"]
+    return result, ["get_savings_goal", "get_income", "get_expenses"]
+
+
+async def _handle_retirement_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_retirement_tool(fs, ctx, plan), ["get_retirement_readiness"]
+
+
+async def _handle_liquidity_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_cash_position_tool(fs, ctx, plan), ["get_accounts", "get_bills", "get_financial_summary"]
+
+
+async def _handle_debt_scenario_query(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_debt_scenario_tool(fs, ctx, plan), ["get_liabilities", "get_accounts"]
+
+
+async def _handle_savings_opportunities(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_savings_opportunities_tool(fs, ctx, plan), ["get_transactions", "get_subscriptions"]
+
+
+async def _handle_spending_since_paycheck(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_spending_since_paycheck_tool(fs, ctx, plan), ["get_income", "get_expenses"]
+
+
+async def _handle_financial_overview(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
+    return await get_overview_tool(fs, ctx, plan), [
+        "get_financial_summary", "get_net_worth", "get_liabilities", "get_bills",
+        "get_financial_score", "get_allo_score", "get_investments",
+    ]
+
+
 async def _handle_financial_calculation(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
     # Best-effort generic fallback for ad-hoc calculation requests that don't
     # map to a more specific intent. Uses whatever date range was resolved;
@@ -638,7 +788,7 @@ async def _handle_financial_calculation(fs: FinancialService, ctx: UserContext, 
 
 
 async def _handle_overall_financial_health(fs: FinancialService, ctx: UserContext, plan: ExecutionPlan) -> ToolResult:
-    today = date.today()
+    today = current_date_in(ctx.timezone)
     period_start = date(today.year, today.month, 1)
     summary = await fs.get_financial_summary(ctx, start=period_start, end=today)
     liabilities = await fs.get_liabilities(ctx)
@@ -704,9 +854,28 @@ _HANDLERS = {
     Intent.INVESTMENT_QUERY: _handle_investment_query,
     Intent.LIABILITY_QUERY: _handle_liability_query,
     Intent.FINANCIAL_SCORE_QUERY: _handle_financial_score_query,
+    Intent.ALLO_SCORE_QUERY: _handle_allo_score_query,
+    Intent.NET_WORTH_QUERY: _handle_net_worth_query,
+    Intent.SAVINGS_GOAL_QUERY: _handle_savings_goal_query,
+    Intent.RETIREMENT_QUERY: _handle_retirement_query,
+    Intent.LIQUIDITY_QUERY: _handle_liquidity_query,
+    Intent.DEBT_SCENARIO_QUERY: _handle_debt_scenario_query,
+    Intent.SAVINGS_OPPORTUNITIES: _handle_savings_opportunities,
+    Intent.SPENDING_SINCE_PAYCHECK: _handle_spending_since_paycheck,
+    Intent.FINANCIAL_OVERVIEW: _handle_financial_overview,
     Intent.FINANCIAL_CALCULATION: _handle_financial_calculation,
     Intent.OVERALL_FINANCIAL_HEALTH: _handle_overall_financial_health,
 }
+
+
+# Intents that describe what HAS happened, and so cannot be asked of a period
+# that starts after today. Bills, affordability and liquidity look forward and
+# are deliberately absent.
+_LOOKBACK_INTENTS = frozenset({
+    Intent.SPENDING_ANALYSIS, Intent.INCOME_QUERY, Intent.CATEGORY_ANALYSIS, Intent.MERCHANT_ANALYSIS,
+    Intent.TRANSACTION_QUERY, Intent.PERIOD_COMPARISON, Intent.CASH_FLOW_ANALYSIS,
+    Intent.SAVINGS_ANALYSIS, Intent.SPENDING_SPIKE,
+})
 
 
 async def route_and_execute(
@@ -722,6 +891,31 @@ async def route_and_execute(
     handler = _HANDLERS.get(plan.intent)
     if handler is None:
         return {}, []
+
+    # A look-BACK question about a period that has not started has no answer:
+    # "did I spend more than usual this weekend?" asked on a Tuesday resolved
+    # to next Saturday and reported "$0.00 on both weekends" -- a real-looking
+    # figure for money that has not been spent. Say the period is ahead.
+    if plan.intent in _LOOKBACK_INTENTS and plan.date_range is not None:
+        today = current_date_in(context.timezone)
+        if plan.date_range.start > today:
+            return (
+                {
+                    "period_in_future": True,
+                    "period": {
+                        "start": plan.date_range.start.isoformat(),
+                        "end": plan.date_range.end.isoformat(),
+                        "label": plan.date_range.label,
+                    },
+                    "today": today.isoformat(),
+                    "note": (
+                        "The period asked about has not started yet, so there is no spending, income "
+                        "or activity to report for it -- do NOT state $0 or a comparison. Say plainly "
+                        "that it has not happened yet and name today's date."
+                    ),
+                },
+                [],
+            )
 
     try:
         return await handler(financial_service, context, plan)

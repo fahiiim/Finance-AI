@@ -1,16 +1,15 @@
 """
-Mock backend client.
+In-memory backend client -- a TEST DOUBLE. It is not part of the application
+and cannot be selected at runtime; the service reads financial data from the
+live internal API only.
 
-Used for local development and the test suite when no real backend is
-available. Data is generated deterministically per user_id (via a seeded
-RNG) so that:
+Data is generated deterministically per user_id (via a seeded RNG) so that:
   - the same user always sees the same data across calls, and
   - two different user_ids NEVER see each other's data —
     this is what the cross-user isolation tests exercise (see
     tests/unit/test_user_isolation.py).
 
-This is explicitly a development aid, not a production integration — see
-docs/assumptions.md.
+It exists so the unit tests can run without a network.
 """
 
 from __future__ import annotations
@@ -23,14 +22,18 @@ from decimal import Decimal
 from app.core.security import UserContext
 from app.schemas.financial import (
     Account,
+    AlloScore,
     Bill,
     BudgetCategory,
     FinancialScore,
     FinancialSummary,
     InvestmentHolding,
     Liability,
+    LiabilitySnapshot,
     Money,
     RecurringTransaction,
+    RetirementReadiness,
+    SavingsGoal,
     Subscription,
     Transaction,
 )
@@ -39,7 +42,7 @@ from app.utils.transactions import expense_amount, expenses, income, income_amou
 
 # Merchant -> category, rather than two independent draws. Picking each at
 # random produced "Netflix (Groceries)" and "Trader Joe's (Subscriptions)" in
-# real output: harmless to the arithmetic, but it makes every demo look broken
+# real output: harmless to the arithmetic, but it makes every answer look broken
 # and gives category totals no meaning a reader can check against the
 # transaction list.
 _MERCHANT_CATEGORIES: dict[str, str] = {
@@ -67,7 +70,7 @@ def _seeded_rng(user_id: str) -> random.Random:
     return random.Random(seed)
 
 
-class MockBackendClient(BackendClient):
+class InMemoryBackendClient(BackendClient):
     async def get_user_profile(self, context: UserContext) -> dict:
         return {"user_id": context.user_id, "currency": context.currency, "timezone": context.timezone}
 
@@ -280,4 +283,108 @@ class MockBackendClient(BackendClient):
             score_range_max=850,
             factors=["Payment history", "Credit utilization", "Savings rate"],
             as_of_date=date.today(),
+        )
+
+    async def get_allo_score(self, context: UserContext) -> AlloScore | None:
+        rng = _seeded_rng(context.user_id)
+        today = date.today()
+        return AlloScore(
+            owner_user_id=context.user_id,
+            overall_score=rng.randrange(40, 90),
+            overall_tier="Moderate",
+            overall_insight="Your finances show a mix of strengths and areas to improve.",
+            flow_score=rng.randrange(40, 90),
+            flow_tier="Moderate",
+            flow_insight="Your day-to-day cash flow is reasonably balanced.",
+            stability_score=rng.randrange(40, 90),
+            stability_tier="Moderate",
+            stability_insight="Your financial safety net has room to grow.",
+            retirement_score=rng.randrange(40, 90),
+            retirement_tier="Moderate",
+            retirement_insight="Your long-term retirement readiness is on track but not secure.",
+            period_start=date(today.year - 1, today.month, 1),
+            period_end=today,
+        )
+
+    async def get_financial_score_history(self, context: UserContext) -> list[FinancialScore]:
+        rng = _seeded_rng(context.user_id)
+        today = date.today()
+        current = rng.randrange(550, 800)
+        return [
+            FinancialScore(
+                owner_user_id=context.user_id,
+                score=current,
+                score_range_min=300,
+                score_range_max=850,
+                factors=["Payment history", "Credit utilization"],
+                as_of_date=today,
+            ),
+            FinancialScore(
+                owner_user_id=context.user_id,
+                score=current - rng.randrange(-20, 20),
+                score_range_min=300,
+                score_range_max=850,
+                factors=["Payment history", "Credit utilization"],
+                as_of_date=today - timedelta(days=90),
+            ),
+        ]
+
+    async def get_allo_score_history(self, context: UserContext) -> list[AlloScore]:
+        current = await self.get_allo_score(context)
+        rng = _seeded_rng(context.user_id)
+        previous = current.model_copy(
+            update={
+                "overall_score": max(0, current.overall_score - rng.randrange(-10, 10)),
+                "period_end": current.period_end - timedelta(days=90),
+                "period_start": current.period_start - timedelta(days=90),
+            }
+        )
+        return [current, previous]
+
+    async def get_liability_history(self, context: UserContext) -> list[LiabilitySnapshot]:
+        rng = _seeded_rng(context.user_id)
+        today = date.today()
+        current_total = Decimal(rng.randrange(0, 4000))
+        return [
+            LiabilitySnapshot(
+                owner_user_id=context.user_id, account_id="all", account_type="total",
+                balance=Money(amount=current_total, currency=context.currency),
+                snapshot_date=today - timedelta(days=30),
+            ),
+            LiabilitySnapshot(
+                owner_user_id=context.user_id, account_id="all", account_type="total",
+                balance=Money(amount=current_total + Decimal(rng.randrange(-500, 500)), currency=context.currency),
+                snapshot_date=today - timedelta(days=90),
+            ),
+        ]
+
+    async def get_retirement_readiness(self, context: UserContext) -> RetirementReadiness | None:
+        rng = _seeded_rng(context.user_id)
+        age = rng.randrange(25, 55)
+        target_age = age + rng.randrange(10, 35)
+        return RetirementReadiness(
+            owner_user_id=context.user_id,
+            age=age,
+            target_retirement_age=target_age,
+            years_remaining=target_age - age,
+            retirement_target=Money(amount=Decimal(rng.randrange(200000, 1000000)), currency=context.currency),
+            future_assets=Money(amount=Decimal(rng.randrange(50000, 800000)), currency=context.currency),
+            monthly_retirement_income_goal=Money(amount=Decimal(rng.randrange(1000, 6000)), currency=context.currency),
+            annual_contribution=Money(amount=Decimal(rng.randrange(0, 15000)), currency=context.currency),
+            savings_rate=Decimal(rng.randrange(-10, 20)) / Decimal(100),
+            investment_rate=Decimal(rng.randrange(0, 15)) / Decimal(100),
+            readiness_ratio=Decimal(rng.randrange(-50, 100)) / Decimal(100),
+        )
+
+    async def get_savings_goal(self, context: UserContext) -> SavingsGoal | None:
+        rng = _seeded_rng(context.user_id)
+        today = date.today()
+        target = Decimal(rng.randrange(2000, 20000))
+        return SavingsGoal(
+            owner_user_id=context.user_id,
+            goal_id=f"{context.user_id}-goal-1",
+            target_amount=Money(amount=target, currency=context.currency),
+            monthly_target=Money(amount=(target / 12).quantize(Decimal("1")), currency=context.currency),
+            start_date=date(today.year, 1, 1),
+            end_date=date(today.year, 12, 31),
         )
