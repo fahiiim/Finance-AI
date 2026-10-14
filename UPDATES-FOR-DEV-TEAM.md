@@ -90,5 +90,13 @@ error message says which one.
 - 469 automated tests passing; type-check and lint clean.
 - All 85 questions from the QA workbook were answered from live data; the ones that
   cannot be answered fully are the data gaps listed above.
+- **Container:** the image builds (about 410 MB), runs as a non-root user, reports
+  healthy, and refuses to start in production without the chat-history decision
+  (point A above). The contract checker runs from inside the image.
+- **Load:** 76 real chat questions at 4-6 in parallel returned 100% HTTP 200 with
+  no restarts and about 75 MB of memory; 400 health checks took under a second.
+  Typical answers took 2-4 s; the slowest were the cash questions described
+  above. Two identities interleaved under load never saw each other's figures.
+  Run it as **one worker** until chat history is persisted (see the Dockerfile).
 - Verified against one real user only. Please run the contract checker for two or
   three other users (including one with no investments or bills) before go-live.
