@@ -1,0 +1,22 @@
+# The image needs requirements.txt, app/ and scripts/ only (see Dockerfile).
+# Keep everything else out of the build context -- above all secrets and the
+# virtualenv, which would otherwise be sent to the Docker engine on every build.
+.git
+.gitignore
+.venv
+venv
+.env
+.env.*
+data
+docs
+tests
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.sql
+*.dump
+*.sql.gz
+*.zip
+*.log
