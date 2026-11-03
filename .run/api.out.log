@@ -1,0 +1,158 @@
+{"timestamp": "2026-10-04T02:37:38Z", "level": "INFO", "logger": "app.main", "message": "service_starting", "environment": "local", "backend_mode": "sqlite"}
+INFO:     127.0.0.1:54671 - "POST /api/v1/conversations HTTP/1.1" 201 Created
+{"timestamp": "2026-10-04T02:37:42Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T02:37:43Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:54672 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56358 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55274 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55275 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55277 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55278 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55279 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55280 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55281 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55282 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55283 - "POST /api/v1/chat HTTP/1.1" 422 Unprocessable Content
+{"timestamp": "2026-10-04T05:48:18Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:48:19Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55287 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:48:21Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:48:21Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55296 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:48:23Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:48:24Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55298 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:48:25Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:48:26Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:48:26Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 5.826000 seconds"}
+{"timestamp": "2026-10-04T05:48:33Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55299 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:48:33Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:48:33Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.678000 seconds"}
+{"timestamp": "2026-10-04T05:48:43Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:48:44Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:48:44Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 6.934000 seconds"}
+{"timestamp": "2026-10-04T05:48:52Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55302 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:48:52Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:48:52Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.562000 seconds"}
+{"timestamp": "2026-10-04T05:49:02Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:49:03Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:03Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.562000 seconds"}
+{"timestamp": "2026-10-04T05:49:11Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55668 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:49:12Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:12Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.050000 seconds"}
+{"timestamp": "2026-10-04T05:49:22Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:49:23Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:23Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 6.186000 seconds"}
+{"timestamp": "2026-10-04T05:49:30Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55673 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:49:30Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:30Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.236000 seconds"}
+{"timestamp": "2026-10-04T05:49:41Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:49:41Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:41Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.316000 seconds"}
+{"timestamp": "2026-10-04T05:49:50Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55679 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:49:50Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:49:50Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.612000 seconds"}
+{"timestamp": "2026-10-04T05:50:00Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:50:01Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:01Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.086000 seconds"}
+{"timestamp": "2026-10-04T05:50:11Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55684 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:50:19Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:19Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 0.114000 seconds"}
+{"timestamp": "2026-10-04T05:50:20Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:50:20Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:20Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 6.494000 seconds"}
+{"timestamp": "2026-10-04T05:50:28Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60089 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:50:28Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:28Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.318000 seconds"}
+{"timestamp": "2026-10-04T05:50:38Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:50:40Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:40Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 5.148000 seconds"}
+{"timestamp": "2026-10-04T05:50:45Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60092 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:50:46Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:46Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.346000 seconds"}
+{"timestamp": "2026-10-04T05:50:56Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:50:56Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:50:56Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 10.412000 seconds"}
+{"timestamp": "2026-10-04T05:51:08Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60096 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:51:09Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:09Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 10.134000 seconds"}
+{"timestamp": "2026-10-04T05:51:20Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:51:21Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:21Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.052000 seconds"}
+{"timestamp": "2026-10-04T05:51:29Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60103 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:51:29Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:29Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.938000 seconds"}
+{"timestamp": "2026-10-04T05:51:40Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:51:40Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:40Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.264000 seconds"}
+{"timestamp": "2026-10-04T05:51:48Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60109 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:51:49Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:49Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.872000 seconds"}
+{"timestamp": "2026-10-04T05:51:59Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:51:59Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:51:59Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.264000 seconds"}
+{"timestamp": "2026-10-04T05:52:09Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:60116 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:52:10Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:52:10Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.646000 seconds"}
+{"timestamp": "2026-10-04T05:52:21Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:52:21Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:52:21Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 6.852000 seconds"}
+{"timestamp": "2026-10-04T05:52:29Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:49355 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:52:30Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:52:30Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.060000 seconds"}
+{"timestamp": "2026-10-04T05:52:41Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:52:41Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:52:41Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 6.872000 seconds"}
+{"timestamp": "2026-10-04T05:52:49Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:49360 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:52:50Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:52:50Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.064000 seconds"}
+{"timestamp": "2026-10-04T05:53:00Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:53:00Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:00Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.664000 seconds"}
+{"timestamp": "2026-10-04T05:53:09Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:49366 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:53:09Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:09Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.224000 seconds"}
+{"timestamp": "2026-10-04T05:53:20Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:53:20Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:20Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 7.576000 seconds"}
+{"timestamp": "2026-10-04T05:53:33Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:49373 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:53:34Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:34Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 4.936000 seconds"}
+{"timestamp": "2026-10-04T05:53:40Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:53:40Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:40Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 8.198000 seconds"}
+{"timestamp": "2026-10-04T05:53:50Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55304 - "POST /api/v1/chat HTTP/1.1" 200 OK
+{"timestamp": "2026-10-04T05:53:50Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:53:50Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.200000 seconds"}
+{"timestamp": "2026-10-04T05:54:01Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:54:01Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 429 Too Many Requests\""}
+{"timestamp": "2026-10-04T05:54:01Z", "level": "INFO", "logger": "openai._base_client", "message": "Retrying request to /chat/completions in 9.134000 seconds"}
+{"timestamp": "2026-10-04T05:54:13Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-10-04T05:54:14Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST https://api.openai.com/v1/chat/completions \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:55306 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56993 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52565 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52565 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52565 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52578 - "GET /health HTTP/1.1" 200 OK
+{"timestamp": "2026-10-05T02:42:12Z", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET https://api.openai.com/v1/models \"HTTP/1.1 200 OK\""}
+INFO:     127.0.0.1:52583 - "GET /ready HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64659 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64659 - "GET /openapi.json HTTP/1.1" 200 OK
