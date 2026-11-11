@@ -70,14 +70,17 @@ treated as an error, never as "no data".
 These are decisions about meaning, not formatting; each has a test in
 `tests/unit/test_live_api_client.py`.
 
-- **Sign.** `amount` is an absolute value; `amount_signed` keeps Plaid's sign
-  (positive = money out). This service reads `amount_signed`.
-- **Transfers.** A row is excluded from spending/income only when it is
-  `is_review_transfer` **and** its category is `TRANSFER_IN`/`TRANSFER_OUT`.
-  `is_internal_transfer` is also set on payroll-tax debits and ordinary
-  purchases, so it is not used on its own.
-- **Summaries are derived from transactions**, not from `financial-summary`,
-  which counts transfers as expenses. One definition of "expense" everywhere.
+- **Income & Expense Classification.** Follows the Allo application's
+  `primary_category` rule: `INCOME` and `TRANSFER_IN` are classified as income
+  (inflow); all other categories including `TRANSFER_OUT` are classified as
+  expenses (outflow), using the unsigned `amount` magnitude (`amount_signed` /
+  `direction` remain fallback when `primary_category` is omitted).
+- **Transfers & Excluded Rows.** The backend filters `is_deleted = 0` before
+  serving `/internal/transactions`, so all returned rows are non-excluded.
+  Python does not automatically exclude transactions based on
+  `is_review_transfer` or `is_internal_transfer`.
+- **Summaries are derived from the complete paginated transactions dataset**,
+  using the same `primary_category` rules and date ranges as the application.
 - **Bills** are paid (`completed_bills`) or unpaid (`upcoming_bills`,
   `due_bills`). Windows past month end are completed day by day via
   `selected_date`; windows before the current month are reported unavailable.
