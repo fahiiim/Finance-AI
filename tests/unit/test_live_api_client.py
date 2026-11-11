@@ -113,19 +113,20 @@ async def test_signs_come_from_amount_signed_so_income_is_not_spending():
 
 
 @pytest.mark.asyncio
-async def test_a_review_flag_alone_does_not_remove_a_purchase():
-    """Real payroll-tax debits and DoorDash orders carry the flag."""
+async def test_transfers_are_kept_when_returned_by_backend():
+    """The backend already filters is_deleted = 0; Python must not exclude transfers."""
     client, _ = make_client({"/internal/transactions": envelope([
         tx(1, "56.70", primary="FOOD_AND_DRINK", review=True, internal=True, name="DoorDash"),
         tx(2, "1000.00", primary="TRANSFER_OUT", review=True, internal=True, name="Card payment"),
-        tx(3, "20.00", primary="TRANSFER_OUT", review=False, name="Unflagged transfer"),
+        tx(3, "-200.00", primary="TRANSFER_IN", review=True, internal=True, name="Account transfer in"),
     ], pagination={"total_pages": 1})})
 
-    ids = {t.transaction_id for t in await client.get_transactions(CTX)}
+    rows = {t.transaction_id: t for t in await client.get_transactions(CTX)}
 
-    assert "plaid-1" in ids, "a flagged purchase is still a purchase"
-    assert "plaid-2" not in ids, "flag AND transfer category is a genuine internal transfer"
-    assert "plaid-3" in ids, "the category alone does not remove it either"
+    assert set(rows) == {"plaid-1", "plaid-2", "plaid-3"}
+    assert rows["plaid-1"].amount == Decimal("56.70")
+    assert rows["plaid-2"].amount == Decimal("1000.00"), "TRANSFER_OUT is classified as expense"
+    assert rows["plaid-3"].amount == Decimal("-200.00"), "TRANSFER_IN is classified as income"
 
 
 @pytest.mark.asyncio
@@ -176,19 +177,21 @@ async def test_a_result_too_large_to_read_raises_instead_of_truncating():
 
 
 @pytest.mark.asyncio
-async def test_the_summary_uses_the_one_expense_definition_and_skips_transfers():
+async def test_the_summary_follows_allo_primary_category_classification():
+    """INCOME + TRANSFER_IN = income; all other categories including TRANSFER_OUT = expense."""
     client, _ = make_client({"/internal/transactions": envelope([
         tx(1, "100.00"),
         tx(2, "50.00"),
         tx(3, "-3000.00", primary="INCOME", name="Payroll"),
         tx(4, "900.00", primary="TRANSFER_OUT", review=True, internal=True, name="Card payment"),
+        tx(5, "-200.00", primary="TRANSFER_IN", review=True, internal=True, name="Internal deposit"),
     ], pagination={"total_pages": 1})})
 
     summary = await client.get_financial_summary(CTX, start=date(2026, 10, 1), end=date(2026, 10, 31))
 
-    assert summary.total_expenses.amount == Decimal("150.00"), "the $900 card payment is not spending"
-    assert summary.total_income.amount == Decimal("3000.00")
-    assert summary.net_cash_flow.amount == Decimal("2850.00")
+    assert summary.total_expenses.amount == Decimal("1050.00")
+    assert summary.total_income.amount == Decimal("3200.00")
+    assert summary.net_cash_flow.amount == Decimal("2150.00")
 
 
 # --------------------------------------------------------------------- bills
@@ -598,25 +601,29 @@ def _manual(record_id, signed, direction, primary, name="typed in"):
 
 
 @pytest.mark.asyncio
-async def test_hand_typed_rows_follow_the_category_rule_not_the_sign():
+async def test_transactions_follow_allo_primary_category_classification():
     """
-    A $96,358 'income' typed in by hand is stored POSITIVE, and a $100,000
-    expense typed in by hand is stored NEGATIVE. Read by sign they became the
-    user's largest purchase and their best savings month.
+    Per the Allo backend rule: INCOME and TRANSFER_IN are inflows (negative in
+    our domain); all other primary categories (including TRANSFER_OUT and
+    expense-category rows regardless of amount_signed) are outflows/expenses.
     """
     imported_refund = tx(3, "-12.99", primary="GENERAL_MERCHANDISE", name="Amazon refund")
     imported_refund["is_plaid"] = True
+    transfer_in = tx(4, "-500.00", primary="TRANSFER_IN", name="Transfer in")
+    transfer_in["is_plaid"] = True
     client, _ = make_client({"/internal/transactions": envelope([
         _manual(1, "96358.00", "inflow", "INCOME", name="Addd"),
         _manual(2, "-100000.00", "outflow", "ENTERTAINMENT", name="spending efficiency"),
         imported_refund,
+        transfer_in,
     ], pagination={"total_pages": 1})})
 
     rows = {t.merchant_name: t for t in await client.get_transactions(CTX)}
 
-    assert rows["Addd"].amount == Decimal("-96358.00"), "typed-in income is money IN"
-    assert rows["spending efficiency"].amount == Decimal("100000.00"), "typed-in expense is money OUT"
-    assert rows["Amazon refund"].amount == Decimal("-12.99"), "an imported refund keeps Plaid's sign"
+    assert rows["Addd"].amount == Decimal("-96358.00"), "INCOME is money IN"
+    assert rows["spending efficiency"].amount == Decimal("100000.00"), "ENTERTAINMENT is money OUT"
+    assert rows["Amazon refund"].amount == Decimal("12.99"), "GENERAL_MERCHANDISE follows primary_category rule"
+    assert rows["Transfer in"].amount == Decimal("-500.00"), "TRANSFER_IN is money IN"
 
 
 def test_rest_of_the_month_resolves_forward_to_month_end():

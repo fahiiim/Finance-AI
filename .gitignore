@@ -1,8 +1,6 @@
 # Real secrets never get committed; the *.example templates always do -- they
 # are the only documentation of which variables exist, and a template that is
 # ignored is a template nobody on the team ever sees.
-.env
-.env.*
 !.env.example
 !.env.production.example
 
@@ -29,3 +27,9 @@ build/
 data/
 
 .DS_Store
+config.bat
+node_modules
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
