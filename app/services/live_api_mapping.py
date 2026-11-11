@@ -8,14 +8,15 @@ the client class stays a thin "fetch, then map" layer.
 THE LIVE CONTRACT (verified against /MyFi/api/internal/* for a real user)
     * Every response is an envelope: {"status", "message", "data", "meta"}.
     * Money is {"amount": "<string>", "currency": "USD"}.
-    * Transactions carry TWO amounts: `amount` is an ABSOLUTE value and
-      `amount_signed` preserves Plaid's sign (positive = money out). The
-      domain `Transaction.amount` is signed, so `amount_signed` is the source.
-      Reading `amount` here would silently turn every deposit into spending.
-    * `direction` is derived by the backend from category rules and disagrees
-      with the sign for a handful of rows (refunds, mis-categorised income).
-      The sign is what app/utils/transactions.py defines "expense" by, so the
-      sign wins; `direction` is only a fallback when no signed amount is sent.
+    * Income vs expense classification follows the Allo application's
+      `primary_category` rule: `INCOME` and `TRANSFER_IN` are income (stored
+      as negative in the domain model per app/utils/transactions.py); all
+      other categories including `TRANSFER_OUT` are expenses (stored positive).
+      The unsigned `amount` magnitude is used when `primary_category` is
+      supplied, matching Allo's backend summaries; `amount_signed` / `direction`
+      remain the fallback when `primary_category` is absent.
+    * The backend filters `is_deleted = 0` server-side; Python does not apply
+      additional exclusion filtering on `is_review_transfer` or `is_internal_transfer`.
 
 Every mapper also accepts the flat shape described in
 docs/handover-backend.md (bare list, `amount` as a plain string), so the client
@@ -186,21 +187,28 @@ def is_excluded_transfer(item: dict) -> bool:
     return primary in TRANSFER_CATEGORIES
 
 
+_INCOME_PRIMARY_CATEGORIES = frozenset({"INCOME", "TRANSFER_IN"})
+
+
 def _signed_amount(item: dict) -> tuple[Decimal, str]:
     signed = money(item.get("amount_signed"))
     magnitude = money(item.get("amount"))
     direction = item.get("direction")
+    primary = (item.get("primary_category") or "").strip().upper()
+
+    if primary:
+        # Canonical Allo classification: INCOME and TRANSFER_IN are inflows
+        # (negative in our domain sign convention); all other primary categories
+        # including TRANSFER_OUT are outflows/expenses (positive). Use unsigned
+        # `amount` magnitude when present so totals match Allo's dashboard.
+        base = magnitude if magnitude is not None else signed
+        if base is None:
+            return Decimal("0"), CURRENCY
+        sign = -1 if primary in _INCOME_PRIMARY_CATEGORIES else 1
+        return abs(base.amount) * sign, base.currency
 
     if signed is not None:
         amount, currency = signed.amount, signed.currency
-        # A row the user typed in by hand does not follow Plaid's sign: income
-        # keyed in as a positive number is stored positive, and an expense
-        # keyed as a negative one is stored negative. Read by sign, a $96,358
-        # manual "income" became the user's largest purchase and a $100,000
-        # manual expense became their best savings month. For those rows the
-        # backend's `direction` -- derived from the category -- is the truth.
-        # Imported (Plaid) rows keep their sign: there, a negative amount on
-        # an "expense" category is a genuine refund or rebate.
         if item.get("is_plaid") is False and direction in ("inflow", "outflow"):
             sign = -1 if direction == "inflow" else 1
             return abs(amount) * sign, currency
