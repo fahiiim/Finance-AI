@@ -44,7 +44,6 @@ from app.services.live_api_mapping import (
     as_dict,
     as_list,
     envelope,
-    is_excluded_transfer,
     map_account,
     map_allo_score,
     map_bills,
@@ -287,8 +286,8 @@ class BackendAPIClient(BackendClient):
         seen: set[str] = set()
         for item in rows:
             item = as_dict(item)
-            if is_excluded_transfer(item):
-                continue
+            # The backend already filters is_deleted = 0 (manually excluded rows);
+            # do not filter on is_review_transfer or is_internal_transfer.
             # Pages are fetched while the user may be adding transactions, so
             # a row can legitimately appear on two adjacent pages.
             record_id = str(item.get("record_id") or "")
@@ -476,15 +475,9 @@ class BackendAPIClient(BackendClient):
 
     async def get_financial_summary(self, context: UserContext, *, start: date, end: date) -> FinancialSummary:
         """
-        Derived from this service's own transaction rules, NOT from
-        /internal/financial-summary.
-
-        The backend's summary counts transfers between the user's own accounts
-        as expenses (for 1-13 October 2026 it reported $17,511 spent where
-        the same rows, with transfers excluded, total $10,660). Using it would
-        make "how much did I spend?" answer differently depending on which
-        tool happened to run. Every figure the assistant states now comes from
-        one definition of an expense -- app/utils/transactions.py.
+        Derived from the paginated transactions dataset using the Allo
+        application's primary_category classification (INCOME + TRANSFER_IN =
+        income; all other categories including TRANSFER_OUT = expenses).
         """
         transactions = await self.get_transactions(context, start=start, end=end)
         total_income = sum((income_amount(t) for t in income(transactions)), Decimal("0"))
